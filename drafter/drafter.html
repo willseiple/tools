@@ -1,12 +1,12 @@
 <title>Drafter</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,500;1,7..72,400&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;1,7..72,400&display=swap">
 <style>
-/* Layout: a single proof-sheet column; the live draft is the paper, everything else is desk. Blue pencil = unreviewed, red = struck. */
+/* Layout: sidebar of conversations + one proof-sheet column. Every reply is paper you can cut into; blue = unreviewed, red = struck, forks show as ‹ 2/3 ›. */
 :root{
   --bg:#E9EDF0; --paper:#FBFCFC; --ink:#1A2026; --ink-2:#5A6670; --ink-3:#8A959E; --line:#D3DAE0;
   --fresh:#2550BE; --fresh-bg:rgba(37,80,190,.07); --cut:#BD3A22; --cut-bg:rgba(189,58,34,.08);
-  --chip:#DEE4E9; --shadow:0 1px 2px rgba(20,30,40,.06),0 8px 28px rgba(20,30,40,.08);
+  --chip:#DEE4E9; --side:#E1E6EA; --shadow:0 1px 2px rgba(20,30,40,.06),0 8px 28px rgba(20,30,40,.08);
   --f-draft:"Literata",Georgia,"Times New Roman",serif;
   --f-ui:"Hanken Grotesk",system-ui,-apple-system,"Segoe UI",sans-serif;
   --f-mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
@@ -14,37 +14,57 @@
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
   --bg:#101418; --paper:#181E24; --ink:#E2E7EB; --ink-2:#99A5AF; --ink-3:#6B7781; --line:#2A333B;
   --fresh:#8EADFF; --fresh-bg:rgba(142,173,255,.09); --cut:#FF8166; --cut-bg:rgba(255,129,102,.1);
-  --chip:#222A31; --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 28px rgba(0,0,0,.35); color-scheme:dark}}
+  --chip:#222A31; --side:#0C1013; --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 28px rgba(0,0,0,.35); color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#101418; --paper:#181E24; --ink:#E2E7EB; --ink-2:#99A5AF; --ink-3:#6B7781; --line:#2A333B;
   --fresh:#8EADFF; --fresh-bg:rgba(142,173,255,.09); --cut:#FF8166; --cut-bg:rgba(255,129,102,.1);
-  --chip:#222A31; --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 28px rgba(0,0,0,.35); color-scheme:dark}
+  --chip:#222A31; --side:#0C1013; --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 28px rgba(0,0,0,.35); color-scheme:dark}
 
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 html,body{height:100%}
-body{background:var(--bg);color:var(--ink);font:15px/1.5 var(--f-ui);padding-inline:16px}
+body{background:var(--bg);color:var(--ink);font:15px/1.5 var(--f-ui);overflow:hidden}
 button{font:inherit;color:inherit;cursor:pointer}
-button:focus-visible,textarea:focus-visible,summary:focus-visible{outline:2px solid var(--fresh);outline-offset:2px}
-.wrap{max-width:780px;margin:0 auto;display:flex;flex-direction:column;min-height:100%}
+button:focus-visible,textarea:focus-visible,input:focus-visible,summary:focus-visible{outline:2px solid var(--fresh);outline-offset:2px}
+.app{display:grid;grid-template-columns:250px minmax(0,1fr);height:100%}
 
-header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;padding-block:14px 12px;border-bottom:1px solid var(--line)}
-.brand{font:600 18px/1 var(--f-draft);letter-spacing:-.01em;margin-right:auto;display:flex;align-items:center;gap:8px}
-.brand svg{flex:none}
+/* sidebar */
+aside{background:var(--side);border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0;padding:14px 10px 10px}
+.brand{font:600 18px/1 var(--f-draft);display:flex;align-items:center;gap:8px;padding:4px 8px 14px}
+.side-actions{display:flex;gap:6px;padding:0 4px 10px}
+.side-actions .btn{flex:1}
+.convs{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:2px;min-height:0}
+.conv{display:flex;align-items:center;gap:4px;border-radius:8px;padding:2px 2px 2px 0}
+.conv:hover,.conv.cur{background:var(--chip)}
+.conv .open{flex:1;min-width:0;border:0;background:none;text-align:left;padding:7px 10px;border-radius:8px}
+.conv .t{display:block;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.conv .d{display:block;font:400 11px/1.3 var(--f-mono);color:var(--ink-3)}
+.conv .del{border:0;background:none;color:var(--ink-3);border-radius:6px;padding:4px 7px;font-size:13px;visibility:hidden}
+.conv:hover .del,.conv .del:focus-visible,.conv .del.armed{visibility:visible}
+.conv .del.armed{color:var(--cut);font-size:12px}
+.side-foot{border-top:1px solid var(--line);padding:10px 6px 2px;font-size:12px;color:var(--ink-3)}
+
+/* main */
+.main{display:flex;flex-direction:column;min-height:0;min-width:0}
+header{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;padding:10px 20px;border-bottom:1px solid var(--line)}
+.menu{display:none;border:1px solid var(--line);background:var(--paper);border-radius:8px;padding:4px 9px}
+.ctitle{font:600 15px/1.2 var(--f-ui);margin-right:auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:40ch}
 .seg{display:inline-flex;background:var(--chip);border-radius:8px;padding:2px}
 .seg button{border:0;background:none;padding:4px 10px;border-radius:6px;font-size:13px;color:var(--ink-2)}
 .seg button[aria-pressed="true"]{background:var(--paper);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08)}
 .lbl{font:500 10.5px/1 var(--f-mono);text-transform:uppercase;letter-spacing:.08em;color:var(--ink-3)}
 .grp{display:flex;align-items:center;gap:6px}
 .btn{border:1px solid var(--line);background:var(--paper);border-radius:8px;padding:5px 11px;font-size:13px}
-.btn:hover{border-color:var(--ink-3)}
+.btn:hover:not(:disabled){border-color:var(--ink-3)}
 .btn.primary{background:var(--fresh);border-color:var(--fresh);color:var(--paper);font-weight:600}
 .btn.danger{color:var(--cut);border-color:var(--cut)}
 .btn:disabled{opacity:.45;cursor:default}
-.ghost{border:0;background:none;padding:5px 8px;border-radius:6px;font-size:13px;color:var(--ink-2)}
+.ghost{border:0;background:none;padding:4px 8px;border-radius:6px;font-size:12.5px;color:var(--ink-2)}
 .ghost:hover:not(:disabled){background:var(--chip);color:var(--ink)}
 .ghost:disabled{opacity:.4;cursor:default}
 
-main{flex:1;display:flex;flex-direction:column;gap:22px;padding-block:22px 28px}
+.scroll{flex:1;overflow-y:auto;min-height:0}
+.thread{max-width:800px;margin:0 auto;padding:24px 20px 28px;display:flex;flex-direction:column;gap:22px}
 .how{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px 22px;font-size:13px;color:var(--ink-2)}
 .how div{display:flex;gap:9px;min-width:0}
 .how b{font:500 11px/1.9 var(--f-mono);color:var(--fresh)}
@@ -53,33 +73,48 @@ main{flex:1;display:flex;flex-direction:column;gap:22px;padding-block:22px 28px}
 .warn{border-color:var(--cut);color:var(--cut)}
 
 .turn{min-width:0}
-.who{font:500 10.5px/1 var(--f-mono);text-transform:uppercase;letter-spacing:.09em;color:var(--ink-3);margin-bottom:7px;display:flex;gap:10px;align-items:center}
-.user .utext{white-space:pre-wrap;font-size:15px;padding-left:12px;border-left:2px solid var(--line);color:var(--ink)}
-.asst .paper{background:var(--paper);border:1px solid var(--line);border-radius:4px;padding:22px 26px;min-width:0}
-.asst.active .paper{box-shadow:var(--shadow)}
-.asst:not(.active) .paper{padding:16px 20px;opacity:.85}
+.who{font:500 10.5px/1 var(--f-mono);text-transform:uppercase;letter-spacing:.09em;color:var(--ink-3);margin-bottom:7px;display:flex;gap:8px;align-items:center;min-height:22px}
+.who .sp{flex:1}
+.nav{display:inline-flex;align-items:center;gap:2px;font:500 11.5px/1 var(--f-mono);color:var(--ink-2);letter-spacing:0;text-transform:none}
+.nav button{border:0;background:none;color:var(--ink-2);padding:3px 6px;border-radius:5px;font-size:13px}
+.nav button:hover:not(:disabled){background:var(--chip);color:var(--ink)}
+.nav button:disabled{opacity:.3;cursor:default}
+.nav span{font-variant-numeric:tabular-nums}
+.user .ubox{display:flex;gap:8px;align-items:flex-start}
+.user .utext{flex:1;min-width:0;white-space:pre-wrap;overflow-wrap:anywhere;font-size:15px;padding-left:12px;border-left:2px solid var(--line)}
+.user .uedit{flex:1;display:flex;flex-direction:column;gap:6px}
+.user textarea{width:100%;min-height:70px;font:15px/1.45 var(--f-ui);color:var(--ink);background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:9px 11px;resize:vertical}
+.paper{background:var(--paper);border:1px solid var(--line);border-radius:4px;padding:20px 24px;min-width:0}
+.asst.last .paper{box-shadow:var(--shadow)}
 .draft{font:400 17px/1.68 var(--f-draft);white-space:pre-wrap;overflow-wrap:anywhere;min-height:1.6em}
-.asst:not(.active) .draft{font-size:15.5px}
 .draft.live{cursor:text}
-.draft .ok{color:var(--ink)}
-.draft .fresh{color:var(--fresh);background:var(--fresh-bg);border-radius:2px}
+.draft .fresh{color:var(--fresh);background:var(--fresh-bg)}
 .draft .seam::before{content:"";display:inline-block;width:2px;height:1.05em;background:var(--fresh);vertical-align:-2px;margin:0 1px;border-radius:1px;opacity:.55}
 .draft .doomed{color:var(--cut);text-decoration:line-through;text-decoration-thickness:1.5px;background:var(--cut-bg)}
+.draft .mk{opacity:.4}
+.draft .b{font-weight:600}
+.draft .i{font-style:italic}
+.draft .h{font-weight:600;font-size:1.12em}
+.draft .code{font-family:var(--f-mono);font-size:.84em}
+.draft .li{color:var(--ink-3)}
+.draft .q{font-style:italic;opacity:.85}
 .draft .caret{display:inline-block;width:.5em;height:1em;background:var(--fresh);vertical-align:-2px;margin-left:1px;animation:blink 1s steps(2) infinite}
 @keyframes blink{50%{opacity:0}}
 @media (prefers-reduced-motion:reduce){.draft .caret{animation:none}}
 .thinking{font:italic 400 16px/1.6 var(--f-draft);color:var(--ink-3)}
 .draft ::selection{background:var(--cut-bg);color:var(--cut)}
 
-.tools{display:flex;flex-wrap:wrap;align-items:center;gap:4px 2px;margin-top:10px}
+.tools{display:flex;flex-wrap:wrap;align-items:center;gap:2px;margin-top:10px}
 .tools .sp{flex:1}
+.asst:not(.last) .tools{opacity:.55;transition:opacity .15s}
+.asst:not(.last):hover .tools,.asst:not(.last):focus-within .tools{opacity:1}
 .stat{font:400 11.5px/1.4 var(--f-mono);color:var(--ink-3);font-variant-numeric:tabular-nums}
 .stat i{font-style:normal;color:var(--fresh)}
 .err{margin-top:10px;font-size:13px;color:var(--cut)}
-.editbox{width:100%;min-height:240px;font:400 16px/1.65 var(--f-draft);color:var(--ink);background:var(--paper);border:1px solid var(--line);border-radius:4px;padding:12px;resize:vertical}
+.editbox{width:100%;min-height:220px;font:400 16px/1.65 var(--f-draft);color:var(--ink);background:var(--paper);border:1px solid var(--line);border-radius:4px;padding:12px;resize:vertical}
 
-details.rej{margin-top:12px}
-details.rej summary{font-size:13px;color:var(--ink-2);cursor:pointer;width:max-content;max-width:100%}
+details.rej{margin-top:10px}
+details.rej summary{font-size:12.5px;color:var(--ink-2);cursor:pointer;width:max-content;max-width:100%}
 .rejlist{display:flex;flex-direction:column;gap:10px;margin-top:10px}
 .rej-item{border-left:2px solid var(--cut);padding:2px 0 2px 12px;min-width:0}
 .rej-at{font:400 11.5px/1.4 var(--f-mono);color:var(--ink-3)}
@@ -87,15 +122,16 @@ details.rej summary{font-size:13px;color:var(--ink-2);cursor:pointer;width:max-c
 .rej-note{font-size:13px;color:var(--ink)}
 .rej-item .ghost{padding:2px 6px;margin-left:-6px}
 
-.composer{position:sticky;bottom:0;background:var(--bg);padding-block:10px calc(14px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--line)}
-.composer form{display:flex;gap:8px;align-items:flex-end}
+.composer{border-top:1px solid var(--line);padding:10px 20px calc(12px + env(safe-area-inset-bottom,0px))}
+.composer form{max-width:760px;margin:0 auto;display:flex;gap:8px;align-items:flex-end}
 .composer textarea{flex:1;min-width:0;resize:none;max-height:200px;min-height:44px;font:15px/1.45 var(--f-ui);color:var(--ink);background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:11px 13px}
 .composer .btn{height:44px;padding-inline:16px}
 
-#pop{position:absolute;z-index:20;width:min(360px,calc(100vw - 32px));background:var(--paper);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);padding:12px;display:flex;flex-direction:column;gap:9px}
+#pop{position:fixed;z-index:30;width:min(370px,calc(100vw - 32px));background:var(--paper);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);padding:12px;display:flex;flex-direction:column;gap:9px}
 #pop .ph{font-size:13px;color:var(--ink-2)}
 #pop .ph q{font-family:var(--f-draft);color:var(--cut);font-style:italic}
-#pop textarea{width:100%;min-height:62px;resize:vertical;font:14px/1.4 var(--f-ui);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:7px;padding:8px 10px}
+#pop .fork{font-size:12px;color:var(--fresh)}
+#pop textarea{width:100%;min-height:58px;resize:vertical;font:14px/1.4 var(--f-ui);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:7px;padding:8px 10px}
 #pop .chips{display:flex;flex-wrap:wrap;gap:6px}
 #pop .chip{border:1px solid var(--line);background:none;border-radius:999px;padding:3px 10px;font-size:12.5px;color:var(--ink-2)}
 #pop .chip:hover{border-color:var(--ink-3)}
@@ -103,39 +139,69 @@ details.rej summary{font-size:13px;color:var(--ink-2);cursor:pointer;width:max-c
 #pop .row{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
 #pop .row .sp{flex:1}
 #pop kbd{font:10.5px var(--f-mono);color:var(--ink-3)}
-@media (max-width:640px){
-  #pop{position:fixed;left:16px!important;right:16px;top:auto!important;bottom:calc(16px + env(safe-area-inset-bottom,0px));width:auto}
-  .asst .paper{padding:16px 16px}
-  .draft{font-size:16px}
+
+.modal{position:fixed;inset:0;z-index:40;background:rgba(10,14,18,.45);display:flex;align-items:center;justify-content:center;padding:16px}
+.modal .box{background:var(--paper);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);width:min(620px,100%);max-height:100%;overflow:auto;padding:18px;display:flex;flex-direction:column;gap:10px}
+.modal h2{font:600 18px/1.2 var(--f-draft);margin:0}
+.modal p{margin:0;font-size:13.5px;color:var(--ink-2)}
+.modal code{font:12px var(--f-mono);background:var(--bg);padding:1px 5px;border-radius:4px}
+.modal textarea{width:100%;min-height:260px;font:14px/1.45 var(--f-ui);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px;resize:vertical}
+.modal .row{display:flex;gap:8px;justify-content:flex-end}
+
+@media (max-width:760px){
+  .app{grid-template-columns:minmax(0,1fr)}
+  aside{position:fixed;inset:0 auto 0 0;width:min(290px,85vw);z-index:35;transform:translateX(-100%);transition:transform .2s;box-shadow:var(--shadow);padding-top:calc(14px + env(safe-area-inset-top,0px))}
+  .app.side-open aside{transform:none}
+  .menu{display:inline-block}
+  header{padding:10px 16px}
   header .lbl{display:none}
+  .thread{padding:18px 16px 24px}
+  .paper{padding:16px}
+  .draft{font-size:16px}
+  .composer{padding-inline:16px}
+  #pop{left:16px!important;right:16px;top:auto!important;bottom:calc(16px + env(safe-area-inset-bottom,0px));width:auto}
 }
+@media (prefers-reduced-motion:reduce){aside{transition:none}}
 </style>
 
-<div class="wrap">
-  <header>
+<div class="app" id="app">
+  <aside id="side">
     <div class="brand">
       <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M3 15V9c0-3 2-5 5-5h7" fill="none" stroke="var(--ink)" stroke-width="1.8" stroke-linecap="round"/><path d="M8 9.5l5 5" stroke="var(--cut)" stroke-width="1.8" stroke-linecap="round"/><circle cx="3" cy="9" r="2" fill="var(--fresh)"/></svg>
       Drafter
     </div>
-    <div class="grp"><span class="lbl">Model</span><div class="seg" id="tier"></div></div>
-    <div class="grp"><span class="lbl">Length</span><div class="seg" id="len"></div></div>
-    <div class="grp">
-      <button class="ghost" id="copyAll" type="button">Copy all</button>
-      <button class="ghost" id="newDraft" type="button">New</button>
+    <div class="side-actions">
+      <button class="btn" type="button" id="newConv">New chat</button>
+      <button class="btn" type="button" id="importBtn">Import</button>
     </div>
-  </header>
-  <main id="thread"></main>
-  <div class="composer">
-    <form id="form">
-      <textarea id="input" rows="1" placeholder="Ask something to start drafting…"></textarea>
-      <button class="btn primary" id="sendBtn" type="submit">Send</button>
-    </form>
+    <nav class="convs" id="convs" aria-label="Conversations"></nav>
+    <div class="side-foot">Saved in this browser only.</div>
+  </aside>
+  <div class="main">
+    <header>
+      <button class="menu" type="button" id="menuBtn" aria-label="Conversations">☰</button>
+      <div class="ctitle" id="ctitle">New chat</div>
+      <div class="grp"><span class="lbl">Model</span><div class="seg" id="tier"></div></div>
+      <div class="grp"><span class="lbl">Length</span><div class="seg" id="len"></div></div>
+      <div class="grp">
+        <button class="ghost" type="button" id="copyAll">Copy chat</button>
+        <button class="ghost" type="button" id="dlBtn" hidden>Download .md</button>
+      </div>
+    </header>
+    <div class="scroll" id="scroll"><main class="thread" id="thread"></main></div>
+    <div class="composer">
+      <form id="form">
+        <textarea id="input" rows="1" placeholder="Ask something, or start with a half-formed idea…"></textarea>
+        <button class="btn primary" id="sendBtn" type="submit">Send</button>
+      </form>
+    </div>
   </div>
 </div>
 <div id="pop" hidden></div>
+<div id="modal" class="modal" hidden></div>
 
 <script>
-const LS = 'drafter-v1';
+const LS = 'drafter-v2';
 const TIERS = [['quick','Quick'],['default','Balanced'],['complex','Deep']];
 const LENS = [['short','Short',150],['medium','Medium',400],['long','Long',900]];
 const REASONS = [
@@ -147,167 +213,303 @@ const REASONS = [
 const $ = s => document.querySelector(s);
 const esc = s => s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const words = s => (s.match(/\S+/g) || []).length;
+const uid = () => Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-4);
+const clone = o => JSON.parse(JSON.stringify(o));
 
-let sample = null, sampleState = 'pending';
-let busy = false, ctl = null, pop = null, editing = null;
+let sample = null, sampleState = 'pending', downloads = null;
+let busy = false, ctl = null, pop = null, editing = null; // editing: node id (assistant text edit or user message edit)
+const gen = {}; // node id -> true while generating
+const errs = {}; // node id -> message
 
-function newAsst(){ return {role:'assistant', text:'', locked:0, rejected:[], hist:[], fut:[]}; }
-function exampleState(){
-  const pre = "The Roman Republic didn't fall in a single moment. It wore down over about a century, as the institutions built for a city-state struggled to govern a Mediterranean empire.\n\nThe first strain was economic. Conquest flooded Italy with slaves and plunder, and wealthy families bought up land to run as large estates. Small farmers, who had been the backbone of the legions, lost their footing. ";
-  const fresh = "When the Gracchus brothers tried to redistribute public land in the 130s and 120s BC, both were killed by fellow senators. Political violence had become a tool, and it stayed one.\n\nThe second strain was military.";
-  return {
-    example:true, tier:'default', len:'medium',
-    turns:[
-      {role:'user', text:"Explain why the Roman Republic fell, in a few paragraphs for a general reader."},
-      {role:'assistant', text: pre + fresh, locked: pre.length, hist:[], fut:[], rejected:[
-        {at: pre.length, span:"moral decline", note:"Moral decline is a dated explanation. Stick to institutions and incentives.",
-         text:"Roman writers at the time blamed moral decline, arguing that luxury from the East had softened the old virtues of discipline and frugality that made Rome great."}
-      ]}
-    ]
-  };
+/* ---------- state ---------- */
+function newConv(example){
+  const id = uid();
+  return {id, title:'New chat', updated:Date.now(), example:!!example, nodes:{root:{id:'root', role:'root', parent:null, children:[], sel:0}}};
 }
-function blankState(){ return {example:false, tier:S?.tier || 'default', len:S?.len || 'medium', turns:[]}; }
-function load(){ try{ const v = JSON.parse(localStorage.getItem(LS)); if(v && Array.isArray(v.turns)) return v; }catch(e){} return null; }
+function addNode(c, parentId, node){
+  node.id = node.id || uid(); node.parent = parentId; node.children = node.children || []; node.sel = node.sel || 0;
+  c.nodes[node.id] = node;
+  const p = c.nodes[parentId]; p.children.push(node.id); p.sel = p.children.length - 1;
+  return node;
+}
+function asstNode(text, locked){ return {role:'assistant', text:text || '', locked:locked || 0, rejected:[], hist:[], fut:[]}; }
+function exampleConv(){
+  const c = newConv(true);
+  c.title = 'Why the Roman Republic fell';
+  const u = addNode(c, 'root', {role:'user', text:'Explain why the Roman Republic fell, in a few paragraphs for a general reader.'});
+  const pre = "The Roman Republic didn't fall in a single moment. It wore down over about a century, as the institutions built for a city-state struggled to govern a Mediterranean empire.\n\nThe first strain was economic. Conquest flooded Italy with slaves and plunder, and wealthy families bought up land to run as **large estates**. Small farmers, who had been the backbone of the legions, lost their footing. ";
+  const fresh = "When the Gracchus brothers tried to redistribute public land in the 130s and 120s BC, both were killed by fellow senators. Political violence had become a tool, and it stayed one.\n\nThe second strain was military.";
+  const a = addNode(c, u.id, asstNode(pre + fresh, pre.length));
+  a.rejected.push({at:pre.length, span:'moral decline', note:'Moral decline is a dated explanation. Stick to institutions and incentives.',
+    text:'Roman writers at the time blamed moral decline, arguing that luxury from the East had softened the old virtues of discipline and frugality that made Rome great.'});
+  return c;
+}
+function load(){
+  try{ const v = JSON.parse(localStorage.getItem(LS)); if(v && v.convs) return v; }catch(e){}
+  const s = {tier:'default', len:'medium', convs:{}, cur:null};
+  try{ // carry over a draft from the first version of Drafter
+    const old = JSON.parse(localStorage.getItem('drafter-v1'));
+    if(old && Array.isArray(old.turns) && old.turns.length && !old.example){
+      const c = newConv(); let p = 'root';
+      for(const t of old.turns){ const n = t.role === 'user' ? {role:'user', text:t.text} : Object.assign(asstNode(t.text, t.locked), {rejected:t.rejected || []}); p = addNode(c, p, n).id; }
+      c.title = titleFrom(old.turns[0].text); s.convs[c.id] = c; s.cur = c.id; s.tier = old.tier || s.tier; s.len = old.len || s.len;
+    }
+  }catch(e){}
+  if(!s.cur){ const c = exampleConv(); s.convs[c.id] = c; s.cur = c.id; }
+  return s;
+}
 function save(){ try{ localStorage.setItem(LS, JSON.stringify(S)); }catch(e){} }
-let S = load() || exampleState();
+let S = load();
+if(!S.convs[S.cur]){ const c = newConv(); S.convs[c.id] = c; S.cur = c.id; }
+const conv = () => S.convs[S.cur];
+const titleFrom = t => { t = t.replace(/\s+/g, ' ').trim(); return t.length > 48 ? t.slice(0, 46) + '…' : (t || 'New chat'); };
+function touch(c){ c.updated = Date.now(); if(c.title === 'New chat'){ const first = c.nodes[c.nodes.root.children[c.nodes.root.sel]]; if(first) c.title = titleFrom(first.text); } }
 
-/* ---------- history ---------- */
-function snap(t){ t.hist.push(JSON.stringify({text:t.text, locked:t.locked, rejected:t.rejected})); if(t.hist.length > 60) t.hist.shift(); t.fut = []; }
-function undo(t){ if(!t.hist.length) return; t.fut.push(JSON.stringify({text:t.text, locked:t.locked, rejected:t.rejected})); Object.assign(t, JSON.parse(t.hist.pop())); save(); render(); }
-function redo(t){ if(!t.fut.length) return; t.hist.push(JSON.stringify({text:t.text, locked:t.locked, rejected:t.rejected})); Object.assign(t, JSON.parse(t.fut.pop())); save(); render(); }
+function path(c){
+  const out = []; let n = c.nodes.root;
+  while(n.children.length){ n = c.nodes[n.children[Math.min(n.sel, n.children.length - 1)]]; out.push(n); }
+  return out;
+}
+function ancestors(c, node){ const out = []; let p = c.nodes[node.parent]; while(p && p.role !== 'root'){ out.unshift(p); p = c.nodes[p.parent]; } return out; }
 
-/* ---------- rendering ---------- */
-function activeIndex(){ const i = S.turns.length - 1; return i >= 0 && S.turns[i].role === 'assistant' ? i : -1; }
+/* ---------- history (leaf replies only) ---------- */
+const snapOf = t => JSON.stringify({text:t.text, locked:t.locked, rejected:t.rejected});
+function snap(t){ t.hist.push(snapOf(t)); if(t.hist.length > 60) t.hist.shift(); t.fut = []; }
+function undo(t){ if(!t.hist.length || t.children.length) return; t.fut.push(snapOf(t)); Object.assign(t, JSON.parse(t.hist.pop())); save(); render(); }
+function redo(t){ if(!t.fut.length || t.children.length) return; t.hist.push(snapOf(t)); Object.assign(t, JSON.parse(t.fut.pop())); save(); render(); }
 
-function draftHTML(t, live, cut){
-  const len = t.text.length, locked = Math.min(t.locked, len);
-  const pts = [...new Set([0, locked, len, ...(cut != null ? [cut] : [])])].sort((a,b) => a-b);
-  let h = '';
-  for(let k = 0; k < pts.length - 1; k++){
-    const a = pts[k], b = pts[k+1]; if(b <= a) continue;
-    let cls = a < locked ? 'ok' : 'fresh';
-    if(cut != null && a >= cut) cls += ' doomed';
-    if(live && a === locked && locked > 0 && locked < len && cut == null) cls += ' seam';
-    h += `<span class="${cls}">${esc(t.text.slice(a,b))}</span>`;
+// A reply that the conversation has already moved past is never changed in place: the change becomes a new branch.
+function target(c, a){
+  if(!a.children.length){ snap(a); return a; }
+  const b = addNode(c, a.parent, {role:'assistant', text:a.text, locked:a.locked, rejected:clone(a.rejected), hist:[], fut:[]});
+  return b;
+}
+
+/* ---------- markdown-lite: style the text without hiding any characters ---------- */
+function mdClasses(text){
+  const cls = new Array(text.length).fill('');
+  const add = (a, b, c) => { for(let k = a; k < b; k++) cls[k] += ' ' + c; };
+  let pos = 0, inCode = false;
+  for(const line of text.split('\n')){
+    const a = pos, b = pos + line.length; let m;
+    if(/^\s*```/.test(line)){ add(a, b, 'mk'); inCode = !inCode; }
+    else if(inCode) add(a, b, 'code');
+    else {
+      if((m = line.match(/^#{1,4}\s/))){ add(a, b, 'h'); add(a, a + m[0].length, 'mk'); }
+      else if((m = line.match(/^(\s*)([-*+]|\d+[.)])\s/))) add(a + m[1].length, a + m[0].length, 'li');
+      else if((m = line.match(/^>\s?/))){ add(a, b, 'q'); add(a, a + m[0].length, 'mk'); }
+      const re = /(\*\*|__)(?=\S)(.+?)(?<=\S)\1|`([^`]+)`|(?<![*\w])([*_])(?=[^\s*_])([^*_]+?)(?<=\S)\4(?![*\w])/g;
+      while((m = re.exec(line))){
+        const s = a + m.index, e = s + m[0].length;
+        if(m[1]){ add(s, s + 2, 'mk'); add(e - 2, e, 'mk'); add(s + 2, e - 2, 'b'); }
+        else if(m[3] != null){ add(s, s + 1, 'mk'); add(e - 1, e, 'mk'); add(s + 1, e - 1, 'code'); }
+        else { add(s, s + 1, 'mk'); add(e - 1, e, 'mk'); add(s + 1, e - 1, 'i'); }
+      }
+    }
+    pos = b + 1;
   }
+  return cls;
+}
+function draftHTML(t, cut, live){
+  const text = t.text, len = text.length, locked = Math.min(t.locked, len);
+  if(!len) return '';
+  const md = mdClasses(text);
+  let h = '', run = '', runCls = null;
+  const flush = () => { if(run) h += `<span class="${runCls.trim()}">${esc(run)}</span>`; run = ''; };
+  for(let k = 0; k < len; k++){
+    if(live && k === locked && locked > 0 && cut == null){ flush(); h += '<span class="seam"></span>'; runCls = null; }
+    let c = (k < locked ? 'ok' : 'fresh') + md[k];
+    if(cut != null && k >= cut) c += ' doomed';
+    if(c !== runCls){ flush(); runCls = c; }
+    run += text[k];
+  }
+  flush();
   return h;
 }
 
+/* ---------- rendering ---------- */
 function render(){
-  const th = $('#thread'), ai = activeIndex();
+  const c = conv(), p = path(c);
+  const lastAsst = [...p].reverse().find(n => n.role === 'assistant');
   let h = '';
-  if(sampleState === 'none') h += `<div class="banner warn"><span>This page needs Claude to write drafts. Open it on claude.ai while signed in.</span></div>`;
-  if(!S.turns.length || S.example){
+  if(sampleState === 'none') h += `<div class="banner warn"><span>Drafter needs Claude to write. Open it on claude.ai while signed in.</span></div>`;
+  if(!p.length || c.example){
     h += `<div class="how">
       <div><b>1</b><span>Start with a question or a half-formed idea. You don't need to know where it's going.</span></div>
-      <div><b>2</b><span>Read as it writes. When a word or idea feels off, highlight or click it. Everything from there gets struck.</span></div>
-      <div><b>3</b><span>Regenerate from that point, with a note if you want. Keep going until it feels right.</span></div></div>`;
+      <div><b>2</b><span>When a word or idea in any reply feels off, highlight or click it. Claude rewrites from there.</span></div>
+      <div><b>3</b><span>Or just reply. Reworking an earlier reply forks the chat, and ‹ › flips between branches.</span></div></div>`;
   }
-  if(S.example) h += `<div class="banner"><span>This is an example draft. Try selecting a phrase in the blue text, or clear it and ask your own question.</span><button class="btn" type="button" data-act="clearEx">Clear example</button></div>`;
-  S.turns.forEach((t, i) => {
-    if(t.role === 'user'){ h += `<section class="turn user"><div class="who">You</div><div class="utext">${esc(t.text)}</div></section>`; return; }
-    const active = i === ai;
-    h += `<section class="turn asst${active ? ' active' : ''}"><div class="who">${active ? 'Draft' : 'Reply'}${active && t.gen ? ' · writing' : ''}</div><div class="paper">`;
-    if(active && editing === i){
-      h += `<textarea class="editbox" id="editbox">${esc(t.text)}</textarea>
-        <div class="tools"><button class="btn primary" type="button" data-act="editSave">Save edits</button><button class="ghost" type="button" data-act="editCancel">Cancel</button><span class="sp"></span><span class="stat">Saved edits count as approved</span></div>`;
+  if(c.example) h += `<div class="banner"><span>This is an example chat. Click a word in the blue text to try it, or start your own.</span><button class="btn" type="button" data-act="clearEx">Start fresh</button></div>`;
+  for(const n of p){
+    const par = c.nodes[n.parent], idx = par.children.indexOf(n.id), sibs = par.children.length;
+    const nav = sibs > 1 ? `<span class="nav"><button type="button" data-act="prev" data-id="${n.id}" aria-label="Previous branch" ${idx ? '' : 'disabled'}>‹</button><span>${idx + 1}/${sibs}</span><button type="button" data-act="next" data-id="${n.id}" aria-label="Next branch" ${idx < sibs - 1 ? '' : 'disabled'}>›</button></span>` : '';
+    if(n.role === 'user'){
+      h += `<section class="turn user"><div class="who">You<span class="sp"></span>${nav}</div><div class="ubox">`;
+      if(editing === n.id) h += `<div class="uedit"><textarea id="uedit">${esc(n.text)}</textarea><div class="tools"><button class="btn primary" type="button" data-act="uSave" data-id="${n.id}">Send as new branch</button><button class="ghost" type="button" data-act="editCancel">Cancel</button></div></div>`;
+      else h += `<div class="utext">${esc(n.text)}</div><button class="ghost" type="button" data-act="uEdit" data-id="${n.id}" ${busy ? 'disabled' : ''} title="Edit message">Edit</button>`;
+      h += `</div></section>`;
+      continue;
+    }
+    const isLast = n === lastAsst, g = !!gen[n.id];
+    h += `<section class="turn asst${isLast ? ' last' : ''}" data-id="${n.id}"><div class="who">Claude${g ? ' · writing' : ''}<span class="sp"></span>${nav}</div><div class="paper">`;
+    if(editing === n.id){
+      h += `<textarea class="editbox" id="editbox">${esc(n.text)}</textarea>
+        <div class="tools"><button class="btn primary" type="button" data-act="editSave" data-id="${n.id}">Save edits</button><button class="ghost" type="button" data-act="editCancel">Cancel</button><span class="sp"></span><span class="stat">${n.children.length ? 'Saves as a new branch' : 'Saved edits count as approved'}</span></div>`;
     } else {
-      if(t.gen && !t.text) h += `<div class="thinking">Thinking…</div>`;
-      h += `<div class="draft${active && !t.gen ? ' live' : ''}" data-i="${i}">${draftHTML(t, active, active && pop && pop.i === i && pop.mode === 'regen' ? pop.cut : null)}${t.gen ? '<span class="caret"></span>' : ''}</div>`;
-      if(active) h += toolsHTML(t, i);
+      if(g && !n.text) h += `<div class="thinking">Thinking…</div>`;
+      const cut = pop && pop.id === n.id && pop.mode === 'regen' ? pop.cut : null;
+      h += `<div class="draft${!busy && sample ? ' live' : ''}" data-id="${n.id}">${draftHTML(n, cut, true)}${g ? '<span class="caret"></span>' : ''}</div>`;
+      h += toolsHTML(n, g);
     }
     h += `</div>`;
-    if(active && t.err) h += `<div class="err">${esc(t.err)}</div>`;
-    if(active && t.rejected.length && editing !== i) h += rejHTML(t, i);
+    if(errs[n.id]) h += `<div class="err">${esc(errs[n.id])}</div>`;
+    if(n.rejected.length && editing !== n.id) h += rejHTML(n);
     h += `</section>`;
-  });
-  th.innerHTML = h;
+  }
+  $('#thread').innerHTML = h;
   $('#sendBtn').disabled = busy || !sample;
-  $('#input').placeholder = ai >= 0 ? 'Reply to continue the conversation…' : 'Ask something to start drafting…';
-  if(editing != null){ const eb = $('#editbox'); if(eb && document.activeElement !== eb) eb.focus(); }
+  $('#input').placeholder = p.length ? 'Reply to keep the conversation going…' : 'Ask something, or start with a half-formed idea…';
+  $('#ctitle').textContent = c.title;
+  renderConvs();
+  if(editing){ const eb = $('#editbox') || $('#uedit'); if(eb && document.activeElement !== eb) eb.focus(); }
 }
-
-function toolsHTML(t, i){
-  const ok = Math.min(t.locked, t.text.length);
-  const stat = `<span class="stat">${words(t.text.slice(0, ok))} approved · <i>${words(t.text.slice(ok))} unreviewed</i></span>`;
-  if(t.gen) return `<div class="tools"><button class="btn danger" type="button" data-act="stop">Stop</button><span class="sp"></span>${stat}</div>`;
-  const dis = !sample ? ' disabled' : '';
+function statHTML(t){ const ok = Math.min(t.locked, t.text.length); return `${words(t.text.slice(0, ok))} approved · <i>${words(t.text.slice(ok))} unreviewed</i>`; }
+function toolsHTML(t, g){
+  if(g) return `<div class="tools"><button class="btn danger" type="button" data-act="stop">Stop</button><span class="sp"></span><span class="stat">${statHTML(t)}</span></div>`;
+  const ok = Math.min(t.locked, t.text.length), leaf = !t.children.length, d = busy || !sample ? ' disabled' : '', db = busy ? ' disabled' : '';
   return `<div class="tools">
-    <button class="ghost" type="button" data-act="undo" ${t.hist.length ? '' : 'disabled'} title="Undo (⌘Z)">Undo</button>
-    <button class="ghost" type="button" data-act="redo" ${t.fut.length ? '' : 'disabled'} title="Redo (⇧⌘Z)">Redo</button>
-    <button class="ghost" type="button" data-act="approve" ${ok < t.text.length ? '' : 'disabled'}>Approve all</button>
-    <button class="ghost" type="button" data-act="continue"${dis}>Continue</button>
-    <button class="ghost" type="button" data-act="restart"${dis}>Start over</button>
-    <button class="ghost" type="button" data-act="edit">Edit</button>
-    <button class="ghost" type="button" data-act="copy">Copy</button>
-    <span class="sp"></span>${stat}</div>`;
+    ${leaf ? `<button class="ghost" type="button" data-act="undo" data-id="${t.id}" ${t.hist.length && !busy ? '' : 'disabled'} title="Undo (⌘Z)">Undo</button>
+    <button class="ghost" type="button" data-act="redo" data-id="${t.id}" ${t.fut.length && !busy ? '' : 'disabled'} title="Redo (⇧⌘Z)">Redo</button>` : ''}
+    <button class="ghost" type="button" data-act="approve" data-id="${t.id}" ${ok < t.text.length && !busy ? '' : 'disabled'}>Approve all</button>
+    <button class="ghost" type="button" data-act="continue" data-id="${t.id}"${d}>Continue</button>
+    <button class="ghost" type="button" data-act="restart" data-id="${t.id}"${d}>Rewrite</button>
+    <button class="ghost" type="button" data-act="edit" data-id="${t.id}"${db}>Edit</button>
+    <button class="ghost" type="button" data-act="copy" data-id="${t.id}">Copy</button>
+    <span class="sp"></span><span class="stat">${statHTML(t)}</span></div>`;
 }
-
-function rejHTML(t, i){
+function rejHTML(t){
   const items = t.rejected.map((r, k) => {
     const before = t.text.slice(0, r.at).trim().split(/\s+/).slice(-6).join(' ');
     const body = r.text.length > 420 ? r.text.slice(0, 420) + '…' : r.text;
     return `<div class="rej-item"><div class="rej-at">${before ? 'after “…' + esc(before) + '”' : 'at the start'}</div>
-      <div class="rej-text">${esc(body)}</div>
-      ${r.note ? `<div class="rej-note">${esc(r.note)}</div>` : ''}
-      <button class="ghost" type="button" data-act="restore" data-k="${k}">Bring this version back</button></div>`;
+      <div class="rej-text">${esc(body)}</div>${r.note ? `<div class="rej-note">${esc(r.note)}</div>` : ''}
+      <button class="ghost" type="button" data-act="restore" data-id="${t.id}" data-k="${k}" ${busy ? 'disabled' : ''}>Bring this version back</button></div>`;
   }).reverse().join('');
   const n = t.rejected.length;
-  return `<details class="rej"${pop ? '' : ''}><summary>${n} rejected version${n === 1 ? '' : 's'} · Claude avoids these</summary><div class="rejlist">${items}</div></details>`;
+  return `<details class="rej"><summary>${n} rejected version${n === 1 ? '' : 's'} · Claude avoids these</summary><div class="rejlist">${items}</div></details>`;
+}
+function renderDraftOnly(id){
+  const el = document.querySelector(`.draft[data-id="${id}"]`), t = conv().nodes[id];
+  if(!el || !t){ return; }
+  el.innerHTML = draftHTML(t, null, true) + (gen[id] ? '<span class="caret"></span>' : '');
+  const sec = el.closest('.turn'); const th = sec.querySelector('.thinking'); if(th && t.text) th.remove();
+  const st = sec.querySelector('.stat'); if(st) st.innerHTML = statHTML(t);
+  const sc = $('#scroll'); if(sc.scrollHeight - sc.scrollTop - sc.clientHeight < 140) sc.scrollTop = sc.scrollHeight;
+}
+function ago(ts){ const s = (Date.now() - ts) / 1000; if(s < 60) return 'just now'; if(s < 3600) return Math.floor(s / 60) + 'm ago'; if(s < 86400) return Math.floor(s / 3600) + 'h ago'; return Math.floor(s / 86400) + 'd ago'; }
+let delArm = null;
+function renderConvs(){
+  const list = Object.values(S.convs).sort((a, b) => b.updated - a.updated);
+  $('#convs').innerHTML = list.map(c => `<div class="conv${c.id === S.cur ? ' cur' : ''}">
+    <button class="open" type="button" data-conv="${c.id}" ${busy ? 'disabled' : ''}><span class="t">${esc(c.title)}</span><span class="d">${c.example ? 'example' : ago(c.updated)}</span></button>
+    <button class="del${delArm === c.id ? ' armed' : ''}" type="button" data-del="${c.id}" aria-label="Delete chat" ${busy ? 'disabled' : ''}>${delArm === c.id ? 'Delete?' : '✕'}</button></div>`).join('');
 }
 
-function renderDraftOnly(i){
-  const el = document.querySelector(`.draft[data-i="${i}"]`);
-  if(!el){ render(); return; }
-  const t = S.turns[i];
-  el.innerHTML = draftHTML(t, true, null) + (t.gen ? '<span class="caret"></span>' : '');
-  const th = el.parentElement.querySelector('.thinking'); if(th && t.text) th.remove();
-  const st = el.parentElement.querySelector('.stat');
-  if(st){ const ok = Math.min(t.locked, t.text.length); st.innerHTML = `${words(t.text.slice(0, ok))} approved · <i>${words(t.text.slice(ok))} unreviewed</i>`; }
-}
-
-/* ---------- top controls ---------- */
+/* ---------- header controls ---------- */
 function renderSegs(){
   $('#tier').innerHTML = TIERS.map(([k, l]) => `<button type="button" data-tier="${k}" aria-pressed="${S.tier === k}">${l}</button>`).join('');
   $('#len').innerHTML = LENS.map(([k, l]) => `<button type="button" data-len="${k}" aria-pressed="${S.len === k}">${l}</button>`).join('');
 }
 $('#tier').onclick = e => { const b = e.target.closest('[data-tier]'); if(b){ S.tier = b.dataset.tier; save(); renderSegs(); } };
 $('#len').onclick = e => { const b = e.target.closest('[data-len]'); if(b){ S.len = b.dataset.len; save(); renderSegs(); } };
+$('#menuBtn').onclick = () => $('#app').classList.toggle('side-open');
+function closeSide(){ $('#app').classList.remove('side-open'); }
 
-let newArm = null;
-$('#newDraft').onclick = () => {
-  if(busy) return;
-  const b = $('#newDraft');
-  if(!S.turns.length) return;
-  if(!newArm){ b.textContent = 'Clear everything?'; b.style.color = 'var(--cut)'; newArm = setTimeout(() => { newArm = null; b.textContent = 'New'; b.style.color = ''; }, 3000); return; }
-  clearTimeout(newArm); newArm = null; b.textContent = 'New'; b.style.color = '';
-  S = blankState(); closePop(true); editing = null; save(); render(); $('#input').focus();
-};
-$('#copyAll').onclick = () => {
-  const md = S.turns.map(t => (t.role === 'user' ? '**You:** ' : '**Claude:** ') + t.text).join('\n\n');
-  copy(md, $('#copyAll'));
+function chatMarkdown(){
+  const c = conv();
+  return `# ${c.title}\n\n` + path(c).map(n => (n.role === 'user' ? '**You:**\n\n' : '**Claude:**\n\n') + n.text).join('\n\n---\n\n') + '\n';
+}
+$('#copyAll').onclick = () => copy(chatMarkdown(), $('#copyAll'));
+$('#dlBtn').onclick = async () => {
+  if(!downloads) return;
+  const name = (conv().title.replace(/[^\w\- ]+/g, '').trim().replace(/\s+/g, '-').toLowerCase() || 'drafter-chat') + '.md';
+  try{ await downloads.save({filename:name, data:chatMarkdown()}); }catch(e){}
 };
 function copy(text, btn){
   const done = () => { const o = btn.textContent; btn.textContent = 'Copied'; setTimeout(() => btn.textContent = o, 1200); };
-  try{
-    navigator.clipboard.writeText(text).then(done, () => fallbackCopy(text, done));
-  }catch(e){ fallbackCopy(text, done); }
+  try{ navigator.clipboard.writeText(text).then(done, () => fallbackCopy(text, done)); }catch(e){ fallbackCopy(text, done); }
 }
 function fallbackCopy(text, done){
   const ta = document.createElement('textarea'); ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
   document.body.appendChild(ta); ta.select(); try{ document.execCommand('copy'); done(); }catch(e){} ta.remove();
 }
 
+/* ---------- sidebar ---------- */
+$('#newConv').onclick = () => {
+  if(busy) return;
+  const cur = conv();
+  if(!path(cur).length && !cur.example){ closeSide(); $('#input').focus(); return; }
+  const c = newConv(); S.convs[c.id] = c; S.cur = c.id; closePop(false); editing = null; save(); render(); closeSide(); $('#input').focus();
+};
+$('#convs').onclick = e => {
+  const o = e.target.closest('[data-conv]'), d = e.target.closest('[data-del]');
+  if(o && !busy){ S.cur = o.dataset.conv; delArm = null; closePop(false); editing = null; save(); render(); closeSide(); $('#scroll').scrollTop = 1e9; return; }
+  if(d && !busy){
+    const id = d.dataset.del;
+    if(delArm !== id){ delArm = id; renderConvs(); setTimeout(() => { if(delArm === id){ delArm = null; renderConvs(); } }, 3000); return; }
+    delete S.convs[id]; delArm = null;
+    if(!Object.keys(S.convs).length){ const c = newConv(); S.convs[c.id] = c; }
+    if(!S.convs[S.cur]) S.cur = Object.values(S.convs).sort((a, b) => b.updated - a.updated)[0].id;
+    save(); render();
+  }
+};
+
+/* ---------- import ---------- */
+$('#importBtn').onclick = () => {
+  closeSide();
+  const m = $('#modal');
+  m.innerHTML = `<div class="box" role="dialog" aria-modal="true" aria-labelledby="impT">
+    <h2 id="impT">Import a conversation</h2>
+    <p>Paste a chat from claude.ai or anywhere else. Start each message with a line like <code>You:</code> or <code>Claude:</code> (also <code>User:</code>, <code>Human:</code>, <code>Assistant:</code>). Text without labels comes in as one message from you.</p>
+    <textarea id="impText" placeholder="You: …&#10;&#10;Claude: …"></textarea>
+    <div class="row"><button class="ghost" type="button" id="impX">Cancel</button><button class="btn primary" type="button" id="impGo">Import</button></div></div>`;
+  m.hidden = false; $('#impText').focus();
+  $('#impX').onclick = () => { m.hidden = true; };
+  m.onclick = e => { if(e.target === m) m.hidden = true; };
+  $('#impGo').onclick = () => {
+    const msgs = parseChat($('#impText').value);
+    if(!msgs.length) return;
+    const c = newConv(); let p = 'root';
+    for(const x of msgs) p = addNode(c, p, x.role === 'user' ? {role:'user', text:x.text} : asstNode(x.text, 0)).id;
+    c.title = titleFrom(msgs[0].text);
+    S.convs[c.id] = c; S.cur = c.id; m.hidden = true; save(); render();
+    if(msgs[msgs.length - 1].role === 'user' && sample){ const a = addNode(c, p, asstNode()); run(c, a.id, 0, {mode:'fresh'}); }
+  };
+};
+function parseChat(raw){
+  const re = /^\s*\**(you|user|human|me|claude|assistant|ai)\**\s*:\**\s?(.*)$/i;
+  const out = []; let cur = null;
+  for(const line of raw.replace(/\r/g, '').split('\n')){
+    const m = line.match(re);
+    if(m){ if(cur) out.push(cur); cur = {role:/^(claude|assistant|ai)$/i.test(m[1]) ? 'assistant' : 'user', text:m[2]}; }
+    else if(cur) cur.text += '\n' + line;
+    else if(line.trim()){ cur = {role:'user', text:line}; }
+  }
+  if(cur) out.push(cur);
+  const merged = [];
+  for(const x of out){ x.text = x.text.trim(); if(!x.text) continue; const last = merged[merged.length - 1]; if(last && last.role === x.role) last.text += '\n\n' + x.text; else merged.push(x); }
+  if(merged[0] && merged[0].role === 'assistant') merged.unshift({role:'user', text:'(conversation imported)'});
+  return merged;
+}
+
 /* ---------- prompting ---------- */
 function lenTarget(){ return (LENS.find(l => l[0] === S.len) || LENS[1])[2]; }
 function trunc(s, n){ s = s.trim(); return s.length > n ? s.slice(0, n) + '…' : s; }
-
-function buildPrompt(i, prefix, ctx){
-  const t = S.turns[i];
-  let convo = S.turns.slice(0, i).map(x => (x.role === 'user' ? 'USER' : 'ASSISTANT') + ':\n' + x.text).join('\n\n');
+function buildPrompt(c, t, prefix, ctx){
+  let convo = ancestors(c, t).map(x => (x.role === 'user' ? 'USER' : 'ASSISTANT') + ':\n' + x.text).join('\n\n');
   if(convo.length > 120000) convo = '…' + convo.slice(-120000);
   const target = lenTarget(), have = words(prefix);
-  let p = `You are writing the ASSISTANT's next reply in the conversation below. The reply is drafted collaboratively: the person reads your text as it is written, and whenever it starts going somewhere they disagree with (an idea they think is wrong, a claim that doesn't fit the context, a framing or tone they don't want), they cut it at that point and ask you to write again from there. Everything inside <approved> has been read and accepted by the person.
+  let p = `You are writing the ASSISTANT's next reply in the conversation below. The person uses this to explore ideas by feel: they don't always know where they're going, but they recognize it when they see it. They read your text as it is written, and whenever it starts going somewhere that feels wrong (an idea they think is off, a concept that doesn't fit, a word with the wrong energy or connotation), they cut it at that point and ask you to write again from there. Everything inside <approved> has been read and accepted.
 
 <conversation>
 ${convo}
@@ -320,21 +522,18 @@ ${prefix || '(nothing yet — start the reply from the beginning)'}
   const here = t.rejected.filter(r => r.at === ctx.cut);
   const earlier = t.rejected.filter(r => r.at < ctx.cut);
   if(ctx.mode === 'regen' && here.length){
-    p += `\nAt exactly this point, the person rejected ${here.length === 1 ? 'this continuation' : 'these continuations'}:\n<rejected>\n${here.map((r, k) => `${k+1}. ${trunc(r.text, 700)}`).join('\n')}\n</rejected>\n`;
+    p += `\nAt exactly this point, the person rejected ${here.length === 1 ? 'this continuation' : 'these continuations'}:\n<rejected>\n${here.map((r, k) => `${k + 1}. ${trunc(r.text, 700)}`).join('\n')}\n</rejected>\n`;
     const last = here[here.length - 1];
-    if(last.span) p += `They highlighted this as the exact spot where it started feeling wrong: "${trunc(last.span, 300)}"\nOften a single word or term is the trigger: its connotation, energy or register clashed with the feeling of the approved text, or it imported a concept (for example a mathematical or physics notion) that doesn't belong in what is being drafted. Treat the highlighted words as the problem. Don't use them or close synonyms of the same register.\n`;
+    if(last.span) p += `They highlighted this as the exact spot where it started feeling wrong: "${trunc(last.span, 300)}"\nOften a single word or term is the trigger: its connotation, energy or register clashed with the feeling of the approved text, or it imported a concept (for example a mathematical or physics notion) that doesn't belong here. Treat the highlighted words as the problem. Don't use them or close synonyms of the same register.\n`;
     const notes = here.filter(r => r.note).map(r => r.note);
     p += notes.length ? `Their notes on what was wrong or where to go instead:\n${notes.map(n => '- ' + n).join('\n')}\n` : `They left no note, so work out what was off (a word's energy, a concept, an assumption, a framing or tone) and take a clearly different direction.\n`;
     p += `Write a different continuation that does not reuse the rejected terms, ideas or framing, and that keeps the emotional tone and energy of the approved text.\n`;
   }
   const avoid = [...new Set(t.rejected.filter(r => r.at <= ctx.cut && r.span).map(r => r.span.trim()).filter(s => s && s.length <= 60))];
   if(avoid.length) p += `\nWords and phrases the person has flagged in this reply. Steer clear of them and their near-synonyms: ${avoid.map(s => `"${s}"`).join(', ')}\n`;
-  if(ctx.mode === 'continue'){
-    p += `\nThe person approved the whole reply so far and wants it to go further.${ctx.note ? `\nDirection for what comes next: ${ctx.note}` : ''}\n`;
-  }
-  if(earlier.length){
-    p += `\nEarlier in this reply the person also rejected these directions. Avoid them:\n${earlier.slice(-6).map(r => `- "${trunc(r.text, 220)}"${r.note ? ` (their note: ${r.note})` : ''}`).join('\n')}\n`;
-  }
+  if(ctx.mode === 'continue') p += `\nThe person approved the whole reply so far and wants it to go further.${ctx.note ? `\nDirection for what comes next: ${ctx.note}` : ''}\n`;
+  if(ctx.mode === 'fresh' && ctx.note) p += `\nDirection from the person for this reply: ${ctx.note}\n`;
+  if(earlier.length) p += `\nEarlier in this reply the person also rejected these directions. Avoid them:\n${earlier.slice(-6).map(r => `- "${trunc(r.text, 220)}"${r.note ? ` (their note: ${r.note})` : ''}`).join('\n')}\n`;
   if(ctx.mode === 'continue') p += `\nLength: add roughly another ${Math.round(target / 2)} words, then stop at a natural point.\n`;
   else if(have >= target * 0.9) p += `\nLength: the reply is already near its target of about ${target} words, so bring it to a natural close within a few sentences.\n`;
   else p += `\nLength: the whole reply should be about ${target} words, so write roughly ${target - have} more words.\n`;
@@ -343,142 +542,156 @@ Output rules:
 - Output ONLY the new text that comes directly after the approved text. Never repeat any approved text. No preamble, no commentary, no quotation marks around your output.
 - If the approved text stops mid-sentence, continue that sentence seamlessly.
 - Match the voice, tone and formatting of the approved text.
-- Write plain text in paragraphs separated by blank lines. No markdown headings or bold; use a simple list only if the request clearly calls for one.`;
+- Write in paragraphs separated by blank lines. Use Markdown (lists, **bold**, code) only where it genuinely helps; prefer flowing prose.`;
   return p;
 }
-
 function joiner(prefix, text){
   if(!prefix || /\s$/.test(prefix) || /^\s/.test(text)) return '';
-  return /^[\p{L}\p{N}("'“‘\[—–-]/u.test(text) ? ' ' : '';
+  return /^[\p{L}\p{N}("'“‘\[—–*_`-]/u.test(text) ? ' ' : '';
 }
 function cleanStart(prefix, text){
-  if(!prefix) return text.replace(/^\s+/, '');
-  if(/\n\n$/.test(prefix)) return text.replace(/^\s+/, '');
+  if(!prefix || /\n\n$/.test(prefix)) return text.replace(/^\s+/, '');
   if(/\n$/.test(prefix)) return text.replace(/^[ \t]+/, '');
   return text;
 }
 function errMsg(code){
   return ({
-    not_granted: 'Claude access was declined for this page. Reload the page to be asked again.',
-    sampling_disabled: "Claude isn't available for this account.",
-    rate_limited: 'Too many requests right now. Wait a moment, then try again.',
-    session_expired: 'Your claude.ai session expired. Sign in again, then retry.',
-    refused: 'Claude declined to write this. Try a different cut point or note.',
-    empty_completion: 'Claude returned nothing. Try a different cut point or note.',
-    prompt_too_large: 'The conversation is too long to send. Start a new draft.',
-  })[code] || 'The connection dropped mid-draft. What was written is kept; try again.';
+    not_granted:'Claude access was declined for this page. Reload the page to be asked again.',
+    sampling_disabled:"Claude isn't available for this account.",
+    rate_limited:'Too many requests right now. Wait a moment, then try again.',
+    session_expired:'Your claude.ai session expired. Sign in again, then retry.',
+    refused:'Claude declined to write this. Try a different cut point or note.',
+    empty_completion:'Claude returned nothing. Try a different cut point or note.',
+    prompt_too_large:'This conversation is too long to send. Start a new chat or import a shorter excerpt.',
+  })[code] || 'The connection dropped mid-reply. What was written is kept; try again.';
 }
 
-async function run(i, cut, ctx){
-  const t = S.turns[i];
-  if(!sample){ t.err = 'Claude is not connected on this page.'; render(); return; }
+async function run(c, id, cut, ctx){
+  const t = c.nodes[id];
+  if(!sample){ errs[id] = 'Claude is not connected on this page.'; render(); return; }
   const prefix = t.text.slice(0, cut);
-  t.text = prefix; t.locked = prefix.length; t.err = ''; t.gen = true;
-  busy = true; ctl = new AbortController();
-  const prompt = buildPrompt(i, prefix, {...ctx, cut});
-  render(); scrollToActive();
+  t.text = prefix; t.locked = prefix.length; delete errs[id]; gen[id] = true;
+  busy = true; ctl = new AbortController(); touch(c);
+  const prompt = buildPrompt(c, t, prefix, {...ctx, cut});
+  render(); scrollTo(id);
   let join = null;
-  const apply = txt => { if(join === null) join = joiner(prefix, cleanStart(prefix, txt)); t.text = prefix + join + cleanStart(prefix, txt); };
+  const apply = txt => { const s = cleanStart(prefix, txt); if(join === null) join = joiner(prefix, s); t.text = prefix + join + s; };
   try{
-    const res = await sample(prompt, { cache:false, signal:ctl.signal, modelTier:S.tier, onText:({text}) => { apply(text); renderDraftOnly(i); } });
+    const res = await sample(prompt, {cache:false, signal:ctl.signal, modelTier:S.tier, onText:({text}) => { apply(text); if(S.cur === c.id) renderDraftOnly(id); }});
     apply(res.text);
-    if(res.truncated) t.err = 'The draft hit the length limit and stops mid-thought. Use Continue to extend it.';
+    if(res.truncated) errs[id] = 'The reply hit the length limit and stops mid-thought. Use Continue to extend it.';
   }catch(e){
     if(e && e.text) apply(e.text);
     if(e && e.code === 'refused') t.text = prefix;
-    if(!e || e.code !== 'cancelled') t.err = errMsg(e && e.code);
+    if(!e || e.code !== 'cancelled') errs[id] = errMsg(e && e.code);
   }finally{
-    t.gen = false; busy = false; ctl = null;
+    delete gen[id]; busy = false; ctl = null;
     t.text = t.text.replace(/\s+$/, '');
     if(t.locked > t.text.length) t.locked = t.text.length;
-    save(); render();
+    touch(c); save(); render();
   }
 }
-function scrollToActive(){ const el = document.querySelector('.asst.active'); if(el) el.scrollIntoView({block:'nearest', behavior:'smooth'}); }
+function scrollTo(id){ const el = document.querySelector(`.turn[data-id="${id}"]`); if(el) el.scrollIntoView({block:'nearest', behavior:'smooth'}); }
 
-/* ---------- actions ---------- */
-function trimCut(t, cut){ while(cut > 0 && /[ \t]/.test(t.text[cut-1])) cut--; return cut; }
-
-function regenerate(i, cut, span, note){
-  const t = S.turns[i]; snap(t);
-  cut = trimCut(t, cut);
+/* ---------- actions on replies ---------- */
+function trimCut(t, cut){ while(cut > 0 && /[ \t]/.test(t.text[cut - 1])) cut--; return cut; }
+function rejectTail(t, cut, span, note){
   const tail = t.text.slice(cut).trim();
   t.rejected = t.rejected.filter(r => r.at <= cut);
   if(tail){ t.rejected.push({at:cut, text:tail, span:span || '', note:note || ''}); if(t.rejected.length > 24) t.rejected.shift(); }
-  run(i, cut, tail ? {mode:'regen', span, note} : {mode:'continue', note});
+  return tail;
 }
-function cutOnly(i, cut, span, note){
-  const t = S.turns[i]; snap(t);
+function regenerate(id, cut, span, note){
+  const c = conv(), t = target(c, c.nodes[id]);
   cut = trimCut(t, cut);
-  const tail = t.text.slice(cut).trim();
-  t.rejected = t.rejected.filter(r => r.at <= cut);
-  if(tail) t.rejected.push({at:cut, text:tail, span:span || '', note:note || ''});
-  t.text = t.text.slice(0, cut).replace(/\s+$/, ''); t.locked = t.text.length; t.err = '';
-  save(); render();
+  const tail = rejectTail(t, cut, span, note);
+  run(c, t.id, cut, tail ? {mode:'regen', span, note} : {mode:'continue', note});
 }
-function continueReply(i, note){
-  const t = S.turns[i]; snap(t);
+function cutOnly(id, cut, span, note){
+  const c = conv(), t = target(c, c.nodes[id]);
+  cut = trimCut(t, cut); rejectTail(t, cut, span, note);
+  t.text = t.text.slice(0, cut).replace(/\s+$/, ''); t.locked = t.text.length; delete errs[t.id];
+  touch(c); save(); render();
+}
+function continueReply(id, note){
+  const c = conv(), t = target(c, c.nodes[id]);
   t.text = t.text.replace(/\s+$/, '');
-  run(i, t.text.length, {mode:'continue', note});
+  run(c, t.id, t.text.length, {mode:'continue', note});
 }
-function restore(i, k){
-  const t = S.turns[i], r = t.rejected[k]; if(!r || r.at > t.text.length) return;
-  snap(t);
-  const pre = t.text.slice(0, r.at), cur = t.text.slice(r.at).trim();
+function restore(id, k){
+  const c = conv(), src = c.nodes[id], r = src.rejected[k]; if(!r || r.at > src.text.length) return;
+  const t = target(c, src), rr = t.rejected[k];
+  const pre = t.text.slice(0, rr.at), cur = t.text.slice(rr.at).trim();
   t.rejected.splice(k, 1);
-  t.rejected = t.rejected.filter(x => x.at <= r.at);
-  if(cur) t.rejected.push({at:r.at, text:cur, span:'', note:''});
-  t.text = pre + joiner(pre, r.text) + r.text;
-  t.locked = Math.min(t.locked, r.at);
-  save(); render();
+  t.rejected = t.rejected.filter(x => x.at <= rr.at);
+  if(cur) t.rejected.push({at:rr.at, text:cur, span:'', note:''});
+  t.text = pre + joiner(pre, rr.text) + rr.text; t.locked = Math.min(t.locked, rr.at);
+  touch(c); save(); render();
+}
+function sendUser(parentId, text){
+  const c = conv();
+  if(c.example){ c.example = false; }
+  const u = addNode(c, parentId, {role:'user', text});
+  const a = addNode(c, u.id, asstNode());
+  touch(c); save();
+  run(c, a.id, 0, {mode:'fresh'});
 }
 
 $('#thread').addEventListener('click', e => {
   const b = e.target.closest('[data-act]'); if(!b) return;
-  const i = activeIndex(), t = S.turns[i];
+  const c = conv(), id = b.dataset.id, t = id && c.nodes[id];
   switch(b.dataset.act){
-    case 'clearEx': S = blankState(); closePop(true); save(); render(); $('#input').focus(); break;
+    case 'clearEx': { delete S.convs[c.id]; const n = newConv(); S.convs[n.id] = n; S.cur = n.id; closePop(false); save(); render(); $('#input').focus(); break; }
     case 'stop': ctl?.abort(); break;
-    case 'undo': closePop(true); undo(t); break;
-    case 'redo': closePop(true); redo(t); break;
-    case 'approve': snap(t); t.locked = t.text.length; save(); render(); break;
-    case 'continue': openPop({i, cut:t.text.length, span:'', mode:'continue', rect:b.getBoundingClientRect()}); break;
-    case 'restart': openPop({i, cut:0, span:t.text.slice(0, 60), mode:'regen', rect:b.getBoundingClientRect()}); break;
-    case 'edit': closePop(true); editing = i; render(); break;
+    case 'prev': case 'next': {
+      if(busy) return; const p = c.nodes[t.parent];
+      p.sel = Math.max(0, Math.min(p.children.length - 1, p.children.indexOf(id) + (b.dataset.act === 'next' ? 1 : -1)));
+      closePop(false); save(); render(); break;
+    }
+    case 'undo': closePop(false); undo(t); break;
+    case 'redo': closePop(false); redo(t); break;
+    case 'approve': if(!t.children.length) snap(t); t.locked = t.text.length; save(); render(); break;
+    case 'continue': openPop({id, cut:t.text.length, span:'', mode:'continue', rect:b.getBoundingClientRect()}); break;
+    case 'restart': openPop({id, cut:0, span:t.text.slice(0, 60), mode:'regen', rect:b.getBoundingClientRect()}); break;
+    case 'edit': case 'uEdit': closePop(false); editing = id; render(); break;
     case 'editCancel': editing = null; render(); break;
     case 'editSave': {
       const v = $('#editbox').value.replace(/\s+$/, '');
-      snap(t);
-      let c = 0; while(c < v.length && c < t.text.length && v[c] === t.text[c]) c++;
-      t.rejected = t.rejected.filter(r => r.at <= c);
-      t.text = v; t.locked = v.length; editing = null; save(); render(); break;
+      const tt = target(c, t);
+      let k = 0; while(k < v.length && k < tt.text.length && v[k] === tt.text[k]) k++;
+      tt.rejected = tt.rejected.filter(r => r.at <= k);
+      tt.text = v; tt.locked = v.length; editing = null; touch(c); save(); render(); break;
+    }
+    case 'uSave': {
+      const v = $('#uedit').value.trim(); if(!v || busy || !sample) return;
+      editing = null; sendUser(t.parent, v); break;
     }
     case 'copy': copy(t.text, b); break;
-    case 'restore': closePop(true); restore(i, +b.dataset.k); break;
+    case 'restore': closePop(false); restore(id, +b.dataset.k); break;
   }
 });
 
-/* ---------- selecting a cut point ---------- */
+/* ---------- choosing a cut point ---------- */
 function offsetIn(root, node, off){ const r = document.createRange(); r.selectNodeContents(root); r.setEnd(node, off); return r.toString().length; }
-
 function handleSel(){
-  if(busy || editing != null || !sample) return;
+  if(busy || editing || !sample) return;
   const sel = getSelection(); if(!sel || !sel.rangeCount) return;
   const r = sel.getRangeAt(0);
   const sn = r.startContainer.nodeType === 1 ? r.startContainer : r.startContainer.parentElement;
   const el = sn && sn.closest('.draft.live'); if(!el) return;
-  const i = +el.dataset.i, text = S.turns[i].text;
+  const id = el.dataset.id, text = conv().nodes[id].text;
   let s = offsetIn(el, r.startContainer, r.startOffset);
   let e = el.contains(r.endContainer) ? offsetIn(el, r.endContainer, r.endOffset) : text.length;
   s = Math.min(s, text.length); e = Math.min(Math.max(e, s), text.length);
-  if(e > s){ while(s < e && /\s/.test(text[s])) s++; }
-  while(s > 0 && /\S/.test(text[s-1])) s--;
-  if(e <= s){ e = s; while(e < text.length && /\S/.test(text[e])) e++; }
+  const clicked = e === s;
+  if(!clicked){ while(s < e && /\s/.test(text[s])) s++; }
+  while(s > 0 && /\S/.test(text[s - 1])) s--;
+  if(clicked || e <= s){ e = s; while(e < text.length && /\S/.test(text[e])) e++; }
   let rect = r.getBoundingClientRect();
   if(!rect.width && !rect.height){ const rs = r.getClientRects(); rect = rs[0] || el.getBoundingClientRect(); }
   sel.removeAllRanges();
-  if(s >= text.replace(/\s+$/, '').length) openPop({i, cut:text.length, span:'', mode:'continue', rect});
-  else openPop({i, cut:s, span:text.slice(s, e), mode:'regen', rect});
+  if(s >= text.replace(/\s+$/, '').length) openPop({id, cut:text.length, span:'', mode:'continue', rect});
+  else openPop({id, cut:s, span:text.slice(s, e), mode:'regen', rect});
 }
 document.addEventListener('pointerup', e => { if(e.target.closest && e.target.closest('.draft.live')) setTimeout(handleSel, 0); });
 let selT = null;
@@ -486,19 +699,20 @@ document.addEventListener('selectionchange', () => {
   clearTimeout(selT);
   selT = setTimeout(() => {
     const sel = getSelection(); if(!sel || sel.isCollapsed || !sel.rangeCount) return;
-    const n = sel.anchorNode; const el = n && (n.nodeType === 1 ? n : n.parentElement);
+    const n = sel.anchorNode, el = n && (n.nodeType === 1 ? n : n.parentElement);
     if(el && el.closest('.draft.live') && matchMedia('(pointer:coarse)').matches) handleSel();
   }, 600);
 });
 
 function openPop(p){
   pop = p; render();
-  const el = $('#pop'), t = S.turns[p.i];
-  const words6 = s => { const w = s.trim().split(/\s+/); return w.slice(0, 6).join(' ') + (w.length > 6 ? '…' : ''); };
-  const head = p.mode === 'continue' ? 'Keep writing from the end of the draft.'
-    : p.cut === 0 ? 'Throw out the whole draft and write it again.'
-    : `Rewrite from <q>${esc(words6(t.text.slice(p.cut)))}</q> onward.`;
+  const el = $('#pop'), t = conv().nodes[p.id];
+  const w6 = s => { const w = s.trim().split(/\s+/); return w.slice(0, 6).join(' ') + (w.length > 6 ? '…' : ''); };
+  const head = p.mode === 'continue' ? 'Keep writing from the end of this reply.'
+    : p.cut === 0 ? 'Throw out this reply and write it again.'
+    : `Rewrite from <q>${esc(w6(t.text.slice(p.cut)))}</q> onward.`;
   el.innerHTML = `<div class="ph">${head}</div>
+    ${t.children.length ? '<div class="fork">This starts a new branch. The later messages stay on the current one.</div>' : ''}
     ${p.mode === 'regen' ? `<div class="chips">${REASONS.map(r => `<button type="button" class="chip" data-r="${esc(r[1])}" aria-pressed="false">${r[0]}</button>`).join('')}</div>` : ''}
     <textarea id="note" placeholder="${p.mode === 'continue' ? 'Optional: where should it go next?' : "Optional: what's off, or where it should go instead"}"></textarea>
     <div class="row">
@@ -508,25 +722,19 @@ function openPop(p){
       <button class="ghost" type="button" id="popX">Cancel</button>
     </div>`;
   el.hidden = false;
-  const w = el.offsetWidth, h = el.offsetHeight;
-  let left = Math.min(Math.max(16, p.rect.left + window.scrollX), window.scrollX + document.documentElement.clientWidth - w - 16);
-  let top = p.rect.bottom + window.scrollY + 10;
-  if(p.rect.bottom + h + 20 > window.innerHeight && p.rect.top - h - 10 > 0) top = p.rect.top + window.scrollY - h - 10;
-  el.style.left = left + 'px'; el.style.top = top + 'px';
+  const w = el.offsetWidth, h = el.offsetHeight, vw = document.documentElement.clientWidth;
+  const left = Math.min(Math.max(16, p.rect.left), vw - w - 16);
+  let top = p.rect.bottom + 10;
+  if(top + h > window.innerHeight - 10 && p.rect.top - h - 10 > 0) top = p.rect.top - h - 10;
+  el.style.left = left + 'px'; el.style.top = Math.max(10, top) + 'px';
   const note = $('#note');
   if(!matchMedia('(pointer:coarse)').matches) note.focus({preventScroll:true});
-  note.addEventListener('keydown', e => {
-    if(e.key === 'Enter' && !e.shiftKey && !e.isComposing){ e.preventDefault(); go(); }
-  });
-  el.querySelectorAll('.chip').forEach(c => c.onclick = () => {
-    const on = c.getAttribute('aria-pressed') !== 'true'; c.setAttribute('aria-pressed', on);
-    note.focus({preventScroll:true});
-  });
-  const go = () => {
-    const picked = [...el.querySelectorAll('.chip[aria-pressed="true"]')].map(c => c.dataset.r);
-    const n = [...picked, note.value.trim()].filter(Boolean).join(' '); const q = pop; closePop(false); q.mode === 'continue' ? continueReply(q.i, n) : regenerate(q.i, q.cut, q.span, n); };
+  note.addEventListener('keydown', e => { if(e.key === 'Enter' && !e.shiftKey && !e.isComposing){ e.preventDefault(); go(); } });
+  el.querySelectorAll('.chip').forEach(ch => ch.onclick = () => { ch.setAttribute('aria-pressed', ch.getAttribute('aria-pressed') !== 'true'); note.focus({preventScroll:true}); });
+  const noteText = () => [...[...el.querySelectorAll('.chip[aria-pressed="true"]')].map(ch => ch.dataset.r), note.value.trim()].filter(Boolean).join(' ');
+  const go = () => { const n = noteText(), q = pop; closePop(false); q.mode === 'continue' ? continueReply(q.id, n) : regenerate(q.id, q.cut, q.span, n); };
   $('#popGo').onclick = go;
-  const c = $('#popCut'); if(c) c.onclick = () => { const q = pop, n = note.value.trim(); closePop(false); cutOnly(q.i, q.cut, q.span, n); };
+  const cb = $('#popCut'); if(cb) cb.onclick = () => { const n = noteText(), q = pop; closePop(false); cutOnly(q.id, q.cut, q.span, n); };
   $('#popX').onclick = () => closePop(true);
 }
 function closePop(rerender){ if(!pop) return; pop = null; $('#pop').hidden = true; if(rerender) render(); }
@@ -535,12 +743,20 @@ document.addEventListener('pointerdown', e => {
   if(e.target.closest('#pop') || e.target.closest('.draft.live')) return;
   closePop(true);
 });
+$('#scroll').addEventListener('scroll', () => { if(pop && !matchMedia('(max-width:760px)').matches) closePop(true); }, {passive:true});
 document.addEventListener('keydown', e => {
-  if(e.key === 'Escape'){ if(pop){ closePop(true); return; } if(busy){ ctl?.abort(); return; } }
+  if(e.key === 'Escape'){
+    if(!$('#modal').hidden){ $('#modal').hidden = true; return; }
+    if(pop){ closePop(true); return; }
+    if(editing){ editing = null; render(); return; }
+    if(busy){ ctl?.abort(); return; }
+    closeSide();
+  }
   const tag = (document.activeElement && document.activeElement.tagName) || '';
   if((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z' && tag !== 'TEXTAREA' && tag !== 'INPUT' && !busy){
-    const i = activeIndex(); if(i < 0) return; e.preventDefault(); closePop(false);
-    e.shiftKey ? redo(S.turns[i]) : undo(S.turns[i]);
+    const p = path(conv()), last = [...p].reverse().find(n => n.role === 'assistant');
+    if(!last || last.children.length) return;
+    e.preventDefault(); closePop(false); e.shiftKey ? redo(last) : undo(last);
   }
 });
 
@@ -552,18 +768,22 @@ input.addEventListener('keydown', e => { if(e.key === 'Enter' && !e.shiftKey && 
 $('#form').addEventListener('submit', e => {
   e.preventDefault();
   const v = input.value.trim(); if(!v || busy || !sample) return;
-  if(S.example) S = blankState();
+  let c = conv();
+  if(c.example){ delete S.convs[c.id]; c = newConv(); S.convs[c.id] = c; S.cur = c.id; }
   closePop(false); editing = null;
-  S.turns.push({role:'user', text:v}); S.turns.push(newAsst());
-  input.value = ''; grow(); save();
-  run(S.turns.length - 1, 0, {mode:'fresh'});
+  const p = path(c), lastId = p.length ? p[p.length - 1].id : 'root';
+  input.value = ''; grow();
+  sendUser(lastId, v);
 });
 
 /* ---------- boot ---------- */
-S.turns.forEach(t => { if(t.role === 'assistant'){ t.gen = false; t.err = ''; t.hist ||= []; t.fut ||= []; t.rejected ||= []; } });
-renderSegs(); render();
+for(const c of Object.values(S.convs)) for(const n of Object.values(c.nodes)) if(n.role === 'assistant'){ n.hist ||= []; n.fut ||= []; n.rejected ||= []; }
+renderSegs(); render(); $('#scroll').scrollTop = 1e9;
 (async () => {
   try{ sample = window.claude ? await window.claude.use('sample') : null; }catch(e){ sample = null; }
-  sampleState = sample ? 'ready' : 'none'; render();
+  try{ downloads = window.claude ? await window.claude.use('downloads') : null; }catch(e){ downloads = null; }
+  sampleState = sample ? 'ready' : 'none';
+  $('#dlBtn').hidden = !downloads;
+  render();
 })();
 </script>

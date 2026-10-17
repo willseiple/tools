@@ -14,16 +14,27 @@ while you explore past it.
 
 ## How it works
 
-- Approved text is black, unreviewed text is blue. Selecting or clicking a word
-  strikes everything after it in red and opens a small box.
-- Pick a reason (wrong energy, wrong concept, too technical, wrong direction)
-  and/or write a note, then press Enter to regenerate from that spot.
-  **Cut here** ends the reply there; **Continue** extends it.
+- It's a normal chat: ask something, reply, keep going. Conversations are listed
+  in the sidebar and saved in your browser.
+- In any reply, approved text is black and unreviewed text is blue. Highlight or
+  click a word and everything after it is struck in red. Pick a reason (wrong
+  energy, wrong concept, too technical, wrong direction) or write a note, then
+  regenerate from that spot. **Cut here** ends the reply there; **Continue**
+  extends it; **Rewrite** starts it over.
+- Reworking a reply the conversation has already moved past starts a new branch,
+  like editing a message on claude.ai. Later messages stay on the old branch, and
+  the ‹ 2/3 › arrows flip between them. Editing one of your own messages branches
+  the same way. Nothing is thrown away.
 - Each regeneration prompt includes the approved text, every rejected version at
   that spot, your notes, and a running list of flagged words so they don't
   creep back in later.
-- Rejected versions are kept under the draft and can be restored. Undo/redo,
-  hand editing and copy are on the toolbar. Drafts are saved in your browser.
+- Rejected versions are kept under each reply and can be brought back. The
+  latest reply has undo/redo. Replies can be edited by hand.
+- **Import** takes a pasted chat (lines starting `You:` / `Claude:`), so you can
+  carry a claude.ai conversation over and keep working on it here. Export with
+  **Copy chat** or **Download .md**.
+- Markdown shows lightly styled with its symbols still visible, so every
+  character stays clickable.
 
 ## Source
 
