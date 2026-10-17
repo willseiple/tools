@@ -199,9 +199,9 @@ function render(){
   if(sampleState === 'none') h += `<div class="banner warn"><span>This page needs Claude to write drafts. Open it on claude.ai while signed in.</span></div>`;
   if(!S.turns.length || S.example){
     h += `<div class="how">
-      <div><b>1</b><span>Ask something. Claude drafts a reply below.</span></div>
-      <div><b>2</b><span>Select the words where it starts sounding wrong. Everything from there gets struck.</span></div>
-      <div><b>3</b><span>Add a note if you want, then regenerate from that point. Repeat until the reply is yours.</span></div></div>`;
+      <div><b>1</b><span>Start with a question or a half-formed idea. You don't need to know where it's going.</span></div>
+      <div><b>2</b><span>Read as it writes. When a word or idea feels off, select it. Everything from there gets struck.</span></div>
+      <div><b>3</b><span>Regenerate from that point, with a note if you want. Keep going until it feels right.</span></div></div>`;
   }
   if(S.example) h += `<div class="banner"><span>This is an example draft. Try selecting a phrase in the blue text, or clear it and ask your own question.</span><button class="btn" type="button" data-act="clearEx">Clear example</button></div>`;
   S.turns.forEach((t, i) => {

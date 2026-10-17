@@ -1,8 +1,14 @@
 # Drafter
 
-Write with Claude one stretch at a time. When a word, term or idea starts to feel
-wrong, highlight it: everything from that point is struck out and rewritten, and
-you keep going until the whole reply is one you've approved.
+A way to explore an idea by feel. You often don't know exactly where a thought is
+going, but you know it when you see it, and you can feel the moment something is
+off. Drafter is built on that. Claude writes, and when a word, term or idea
+doesn't fit, you highlight it. Everything from that point is rewritten, and you
+keep going until the whole thing feels right.
+
+You never have to explain what you want up front. Each cut tells Claude a bit
+more about where you're headed, and the text you keep holds your thought intact
+while you explore past it.
 
 **Use it:** https://claude.ai/artifact/WTfHnWF36zSxn1aRUW3kRP (needs a claude.ai account)
 
