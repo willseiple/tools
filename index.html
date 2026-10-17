@@ -47,6 +47,32 @@ header p{margin:0;color:var(--ink-2);max-width:56ch}
 .note code{font:12.5px var(--f-mono);background:var(--bg);border:1px solid var(--line);border-radius:5px;padding:6px 8px;display:block;margin-top:6px;overflow-x:auto;white-space:nowrap;color:var(--ink)}
 .demo{font:500 16px/1.6 var(--f-head);background:var(--bg);border-radius:9px;padding:12px 14px;color:var(--ink)}
 .demo .f{color:var(--blue)} .demo s{color:var(--red);text-decoration-thickness:1.5px}
+.grid{align-items:start}
+.fb{border-top:1px solid var(--line);padding-top:14px;display:flex;flex-direction:column;gap:12px}
+.rate{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.stars{display:inline-flex}
+.stars button{border:0;background:none;padding:2px;font-size:24px;line-height:1;color:var(--line);cursor:pointer;transition:transform .1s}
+.stars button.on{color:var(--amber)}
+.stars button:hover{transform:scale(1.12)}
+.stars button:focus-visible{outline:2px solid var(--blue);border-radius:4px}
+.avg{font-size:13.5px;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.avg b{color:var(--ink);font-weight:600}
+.ctoggle{border:0;background:none;padding:0;font:600 14px var(--f-ui);color:var(--blue);cursor:pointer;text-align:left;width:max-content}
+.clist{display:flex;flex-direction:column;gap:12px;max-height:420px;overflow-y:auto}
+.c{min-width:0}
+.c .meta{font-size:12.5px;color:var(--ink-3)}
+.c .meta b{color:var(--ink);font-weight:600;margin-right:6px}
+.c p{margin:2px 0 0;color:var(--ink);font-size:15px;white-space:pre-wrap;overflow-wrap:anywhere}
+.empty{font-size:14px;color:var(--ink-3)}
+.cform{display:flex;flex-direction:column;gap:8px}
+.cform input,.cform textarea{font:15px/1.45 var(--f-ui);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:9px 11px;width:100%}
+.cform textarea{min-height:80px;resize:vertical}
+.cform input:focus-visible,.cform textarea:focus-visible{outline:2px solid var(--blue);outline-offset:1px}
+.cform .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.cform .msg{font-size:13px;color:var(--ink-2)}
+.cform .msg.err{color:var(--red)}
+.cform button.btn{cursor:pointer;font-family:var(--f-ui)}
+.cform button.btn:disabled{opacity:.5;cursor:default}
 footer{margin-top:48px;font-size:13.5px;color:var(--ink-3)}
 </style>
 </head>
@@ -75,6 +101,7 @@ footer{margin-top:48px;font-size:13.5px;color:var(--ink-3)}
       </div>
       <div class="note">Needs the Spotify desktop app. The app isn't notarized by Apple, so after dragging it into Applications, run this once in Terminal:
         <code>xattr -dr com.apple.quarantine /Applications/GuitarHUD.app</code></div>
+      <div class="fb" data-app="guitarhud"></div>
     </article>
 
     <article class="tool" id="drafter">
@@ -94,10 +121,119 @@ footer{margin-top:48px;font-size:13.5px;color:var(--ink-3)}
         <a class="btn" href="https://github.com/willseiple/tools/tree/main/drafter">Source</a>
       </div>
       <div class="note">Sign in with a claude.ai account. Drafter writes with your own Claude plan, and asks before its first use.</div>
+      <div class="fb" data-app="drafter"></div>
     </article>
   </div>
 
   <footer>Made by <a href="https://github.com/willseiple">@willseiple</a>.</footer>
 </div>
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
+<script>
+const API = 'https://slop-feedback.wgseiple.workers.dev';
+const SITEKEY = '0x4AAAAAAFZjDi2mYv_QmWCN';
+let client = '';
+try { client = localStorage.getItem('slop-client') || ''; if (!client) { client = crypto.randomUUID(); localStorage.setItem('slop-client', client); } } catch (e) { client = 'anon-' + Math.random().toString(36).slice(2); }
+
+const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+const ago = ts => { const s = (Date.now() - ts) / 1000; if (s < 60) return 'just now'; if (s < 3600) return Math.floor(s / 60) + 'm ago'; if (s < 86400) return Math.floor(s / 3600) + 'h ago'; if (s < 2592000) return Math.floor(s / 86400) + 'd ago'; return new Date(ts).toLocaleDateString(); };
+
+function setup(box, data) {
+  const app = box.dataset.app;
+  let st = data || { avg: 0, count: 0, comments: 0, mine: 0 };
+  box.textContent = '';
+
+  const rate = el('div', 'rate');
+  const stars = el('div', 'stars'); stars.setAttribute('role', 'group'); stars.setAttribute('aria-label', 'Rate this');
+  const avg = el('span', 'avg');
+  const btns = [1, 2, 3, 4, 5].map(n => {
+    const b = el('button', '', '★'); b.type = 'button'; b.setAttribute('aria-label', n + ' star' + (n > 1 ? 's' : ''));
+    b.onmouseenter = () => paint(n); b.onfocus = () => paint(n);
+    b.onclick = async () => {
+      st.mine = n; paint();
+      try {
+        const r = await fetch(API + '/rate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ app, stars: n, client }) });
+        const d = await r.json();
+        if (r.ok) Object.assign(st, d); else avg.textContent = d.error || 'Rating failed.';
+      } catch (e) { avg.textContent = "Couldn't save your rating. Try again."; return; }
+      paint(); showAvg();
+    };
+    stars.append(b); return b;
+  });
+  stars.onmouseleave = () => paint();
+  const paint = (h) => { const v = h || st.mine || Math.round(st.avg); btns.forEach((b, i) => b.classList.toggle('on', i < v)); };
+  const showAvg = () => {
+    avg.textContent = '';
+    if (st.count) { avg.append(el('b', '', st.avg.toFixed(1))); avg.append(' · ' + st.count + ' rating' + (st.count === 1 ? '' : 's')); }
+    else avg.textContent = 'No ratings yet';
+    if (st.mine) avg.append(' · you gave ' + st.mine);
+  };
+  paint(); showAvg();
+  rate.append(stars, avg);
+
+  const toggle = el('button', 'ctoggle'); toggle.type = 'button'; toggle.setAttribute('aria-expanded', 'false');
+  const label = () => toggle.textContent = (toggle.getAttribute('aria-expanded') === 'true' ? 'Hide comments' : st.comments ? 'Comments (' + st.comments + ')' : 'Leave a comment');
+  label();
+  const panel = el('div'); panel.hidden = true;
+  toggle.onclick = () => {
+    const open = toggle.getAttribute('aria-expanded') !== 'true';
+    toggle.setAttribute('aria-expanded', open); panel.hidden = !open; label();
+    if (open && !panel.dataset.ready) { panel.dataset.ready = 1; buildPanel(); }
+  };
+
+  function buildPanel() {
+    panel.style.display = 'flex'; panel.style.flexDirection = 'column'; panel.style.gap = '14px';
+    const list = el('div', 'clist'); list.append(el('div', 'empty', 'Loading comments…'));
+    const form = el('form', 'cform');
+    const name = el('input'); name.id = 'name-' + app; name.placeholder = 'Your name (optional)'; name.maxLength = 40; name.autocomplete = 'nickname';
+    try { name.value = localStorage.getItem('slop-name') || ''; } catch (e) {}
+    const body = el('textarea'); body.id = 'body-' + app; body.placeholder = 'What did you think?'; body.maxLength = 2000; body.required = true;
+    const ts = el('div');
+    const row = el('div', 'row');
+    const post = el('button', 'btn primary', 'Post comment'); post.type = 'submit';
+    const msg = el('span', 'msg');
+    row.append(post, msg);
+    form.append(name, body, ts, row);
+    panel.append(list, form);
+
+    let wid = null;
+    const renderTs = () => { if (window.turnstile && wid === null) wid = turnstile.render(ts, { sitekey: SITEKEY, theme: 'auto', size: 'flexible', appearance: 'interaction-only' }); };
+    const waitTs = setInterval(() => { if (window.turnstile) { clearInterval(waitTs); renderTs(); } }, 200);
+
+    const show = items => {
+      list.textContent = '';
+      if (!items.length) { list.append(el('div', 'empty', 'No comments yet. Be the first.')); return; }
+      for (const c of items) {
+        const d = el('div', 'c'); const m = el('div', 'meta'); m.append(el('b', '', c.name)); m.append(ago(c.ts));
+        d.append(m, el('p', '', c.body)); list.append(d);
+      }
+    };
+    let items = [];
+    fetch(API + '/comments?app=' + app).then(r => r.json()).then(d => { items = Array.isArray(d) ? d : []; show(items); })
+      .catch(() => { list.textContent = ''; list.append(el('div', 'empty', "Couldn't load comments right now.")); });
+
+    form.onsubmit = async e => {
+      e.preventDefault();
+      if (!body.value.trim()) { msg.className = 'msg err'; msg.textContent = 'Write a comment first.'; return; }
+      const token = wid !== null ? turnstile.getResponse(wid) : '';
+      if (!token) { msg.className = 'msg'; msg.textContent = 'Checking you’re not a bot… try again in a second.'; return; }
+      post.disabled = true; msg.className = 'msg'; msg.textContent = 'Posting…';
+      try { localStorage.setItem('slop-name', name.value.trim()); } catch (e) {}
+      try {
+        const r = await fetch(API + '/comment', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ app, name: name.value, body: body.value, token }) });
+        const d = await r.json();
+        if (!r.ok) throw new Error(d.error || 'Posting failed.');
+        items.unshift(d); show(items); body.value = ''; st.comments++; msg.textContent = 'Posted.';
+      } catch (err) { msg.className = 'msg err'; msg.textContent = err.message || "Couldn't post. Try again."; }
+      finally { post.disabled = false; if (wid !== null) turnstile.reset(wid); }
+    };
+  }
+
+  box.append(rate, toggle, panel);
+}
+
+const boxes = [...document.querySelectorAll('.fb')];
+boxes.forEach(b => setup(b));
+fetch(API + '/summary?client=' + encodeURIComponent(client)).then(r => r.json()).then(d => boxes.forEach(b => setup(b, d[b.dataset.app]))).catch(() => {});
+</script>
 </body>
 </html>
