@@ -30,6 +30,11 @@ header p{margin:0;color:var(--ink-2);max-width:56ch}
 .icon{width:56px;height:56px;flex:none;border-radius:13px}
 .tool h2{font:600 24px/1.1 var(--f-head);margin:0}
 .kind{font:500 11px/1.4 var(--f-mono);text-transform:uppercase;letter-spacing:.08em;color:var(--ink-3);margin-top:4px}
+.top>div{flex:1;min-width:0}
+.tag{font:600 12px/1 var(--f-ui);padding:6px 10px;border-radius:999px;white-space:nowrap;align-self:flex-start;border:1px solid}
+.tag.use{color:#1F7A4D;background:rgba(31,122,77,.1);border-color:rgba(31,122,77,.3)}
+.tag.concept{color:var(--blue);background:rgba(37,80,190,.08);border-color:rgba(37,80,190,.3)}
+@media (prefers-color-scheme:dark){.tag.use{color:#6FD39F;background:rgba(111,211,159,.1);border-color:rgba(111,211,159,.3)}.tag.concept{background:rgba(142,173,255,.1);border-color:rgba(142,173,255,.3)}}
 .tool p{margin:0;color:var(--ink-2)}
 .tool ul{margin:0;padding-left:18px;color:var(--ink-2);font-size:15px;display:flex;flex-direction:column;gap:4px}
 .actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:auto;padding-top:6px}
@@ -55,7 +60,7 @@ footer{margin-top:48px;font-size:13.5px;color:var(--ink-3)}
     <article class="tool" id="guitarhud">
       <div class="top">
         <img class="icon" src="assets/guitarhud.png" alt="">
-        <div><h2>GuitarHUD</h2><div class="kind">Mac app · macOS 13+</div></div>
+        <div><h2>GuitarHUD</h2><div class="kind">Mac app · macOS 13+</div></div><span class="tag use">I actually use this</span>
       </div>
       <p>A floating chord window that follows whatever Spotify is playing. Play a song and the Ultimate Guitar chords are already up, sitting on top of your other windows.</p>
       <ul>
@@ -74,7 +79,7 @@ footer{margin-top:48px;font-size:13.5px;color:var(--ink-3)}
     <article class="tool" id="drafter">
       <div class="top">
         <svg class="icon" viewBox="0 0 56 56" aria-hidden="true"><rect width="56" height="56" rx="13" fill="var(--tile)"/><path d="M15 41V27c0-6 4-10 10-10h17" fill="none" stroke="#E8ECEF" stroke-width="3.6" stroke-linecap="round"/><path d="M25 28l11 11" stroke="#FF8166" stroke-width="3.6" stroke-linecap="round"/><circle cx="15" cy="27" r="4.4" fill="#8EADFF"/></svg>
-        <div><h2>Drafter</h2><div class="kind">Web · runs on claude.ai</div></div>
+        <div><h2>Drafter</h2><div class="kind">Web · runs on claude.ai</div></div><span class="tag concept">Concept</span>
       </div>
       <p>A way to explore an idea by feel. You don't need to know where you're going, only to recognize it when you see it. Claude writes, and the moment a word or idea feels off, you highlight or click it. Everything from there gets rewritten, and you keep going until the whole thing feels right.</p>
       <div class="demo">The quiet is not empty, it is <s>a low-entropy state</s> <span class="f">full of things waiting</span></div>
