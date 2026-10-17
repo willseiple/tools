@@ -1,4 +1,4 @@
-# Tools by Will Seiple
+# Vibecoded Slop by Will Seiple
 
 Home page for the small tools I've built: **https://willseiple.github.io/tools/**
 
