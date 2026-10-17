@@ -3,7 +3,7 @@
 A way to explore an idea by feel. You often don't know exactly where a thought is
 going, but you know it when you see it, and you can feel the moment something is
 off. Drafter is built on that. Claude writes, and when a word, term or idea
-doesn't fit, you highlight it. Everything from that point is rewritten, and you
+doesn't fit, you highlight or click it. Everything from that point is rewritten, and you
 keep going until the whole thing feels right.
 
 You never have to explain what you want up front. Each cut tells Claude a bit
