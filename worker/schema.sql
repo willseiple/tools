@@ -1,13 +1,3 @@
-CREATE TABLE IF NOT EXISTS ratings (
-  app TEXT NOT NULL,
-  voter TEXT NOT NULL,
-  stars INTEGER NOT NULL CHECK (stars BETWEEN 1 AND 5),
-  iph TEXT NOT NULL,
-  ts INTEGER NOT NULL,
-  PRIMARY KEY (app, voter)
-);
-CREATE INDEX IF NOT EXISTS ratings_iph ON ratings (app, iph, ts);
-
 CREATE TABLE IF NOT EXISTS comments (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   app TEXT NOT NULL,
@@ -19,3 +9,12 @@ CREATE TABLE IF NOT EXISTS comments (
 );
 CREATE INDEX IF NOT EXISTS comments_app ON comments (app, hidden, ts);
 CREATE INDEX IF NOT EXISTS comments_iph ON comments (iph, ts);
+
+CREATE TABLE IF NOT EXISTS likes (
+  comment_id INTEGER NOT NULL,
+  voter TEXT NOT NULL,
+  iph TEXT NOT NULL,
+  ts INTEGER NOT NULL,
+  PRIMARY KEY (comment_id, voter)
+);
+CREATE INDEX IF NOT EXISTS likes_iph ON likes (iph, ts);

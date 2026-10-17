@@ -49,20 +49,16 @@ header p{margin:0;color:var(--ink-2);max-width:56ch}
 .demo .f{color:var(--blue)} .demo s{color:var(--red);text-decoration-thickness:1.5px}
 .grid{align-items:start}
 .fb{border-top:1px solid var(--line);padding-top:14px;display:flex;flex-direction:column;gap:12px}
-.rate{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.stars{display:inline-flex}
-.stars button{border:0;background:none;padding:2px;font-size:24px;line-height:1;color:var(--ink-3);opacity:.8;cursor:pointer;transition:transform .1s}
-.stars button.on{color:var(--amber);opacity:1}
-.stars button:hover{transform:scale(1.12)}
-.stars button:focus-visible{outline:2px solid var(--blue);border-radius:4px}
-.avg{font-size:13.5px;color:var(--ink-2);font-variant-numeric:tabular-nums}
-.avg b{color:var(--ink);font-weight:600}
 .ctoggle{border:0;background:none;padding:0;font:600 14px var(--f-ui);color:var(--blue);cursor:pointer;text-align:left;width:max-content}
 .clist{display:flex;flex-direction:column;gap:12px;max-height:420px;overflow-y:auto}
 .c{min-width:0}
 .c .meta{font-size:12.5px;color:var(--ink-3)}
 .c .meta b{color:var(--ink);font-weight:600;margin-right:6px}
 .c p{margin:2px 0 0;color:var(--ink);font-size:15px;white-space:pre-wrap;overflow-wrap:anywhere}
+.like{border:0;background:none;padding:2px 0;margin-top:4px;font:500 13px var(--f-ui);color:var(--ink-3);cursor:pointer}
+.like:hover{color:var(--red)}
+.like.on{color:var(--red)}
+.like:focus-visible{outline:2px solid var(--blue);border-radius:4px}
 .empty{font-size:14px;color:var(--ink-3)}
 .cform{display:flex;flex-direction:column;gap:8px}
 .cform input,.cform textarea{font:15px/1.45 var(--f-ui);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:9px 11px;width:100%}
@@ -139,36 +135,8 @@ const ago = ts => { const s = (Date.now() - ts) / 1000; if (s < 60) return 'just
 
 function setup(box, data) {
   const app = box.dataset.app;
-  let st = data || { avg: 0, count: 0, comments: 0, mine: 0 };
+  let st = data || { comments: 0 };
   box.textContent = '';
-
-  const rate = el('div', 'rate');
-  const stars = el('div', 'stars'); stars.setAttribute('role', 'group'); stars.setAttribute('aria-label', 'Rate this');
-  const avg = el('span', 'avg');
-  const btns = [1, 2, 3, 4, 5].map(n => {
-    const b = el('button', '', '★'); b.type = 'button'; b.setAttribute('aria-label', n + ' star' + (n > 1 ? 's' : ''));
-    b.onmouseenter = () => paint(n); b.onfocus = () => paint(n);
-    b.onclick = async () => {
-      st.mine = n; paint();
-      try {
-        const r = await fetch(API + '/rate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ app, stars: n, client }) });
-        const d = await r.json();
-        if (r.ok) Object.assign(st, d); else avg.textContent = d.error || 'Rating failed.';
-      } catch (e) { avg.textContent = "Couldn't save your rating. Try again."; return; }
-      paint(); showAvg();
-    };
-    stars.append(b); return b;
-  });
-  stars.onmouseleave = () => paint();
-  const paint = (h) => { const v = h || st.mine || Math.round(st.avg); btns.forEach((b, i) => b.classList.toggle('on', i < v)); };
-  const showAvg = () => {
-    avg.textContent = '';
-    if (st.count) { avg.append(el('b', '', st.avg.toFixed(1))); avg.append(' · ' + st.count + ' rating' + (st.count === 1 ? '' : 's')); }
-    else avg.textContent = 'No ratings yet';
-    if (st.mine) avg.append(' · you gave ' + st.mine);
-  };
-  paint(); showAvg();
-  rate.append(stars, avg);
 
   const toggle = el('button', 'ctoggle'); toggle.type = 'button'; toggle.setAttribute('aria-expanded', 'false');
   const label = () => toggle.textContent = (toggle.getAttribute('aria-expanded') === 'true' ? 'Hide discussion' : st.comments ? 'Discuss (' + st.comments + ')' : 'Discuss');
@@ -204,11 +172,24 @@ function setup(box, data) {
       if (!items.length) { list.append(el('div', 'empty', 'Nothing here yet. Start the discussion.')); return; }
       for (const c of items) {
         const d = el('div', 'c'); const m = el('div', 'meta'); m.append(el('b', '', c.name)); m.append(ago(c.ts));
-        d.append(m, el('p', '', c.body)); list.append(d);
+        const like = el('button', 'like' + (c.liked ? ' on' : '')); like.type = 'button';
+        like.setAttribute('aria-pressed', !!c.liked); like.setAttribute('aria-label', c.liked ? 'Unlike' : 'Like');
+        const paintLike = () => { like.textContent = (c.liked ? '♥' : '♡') + (c.likes ? ' ' + c.likes : ''); like.classList.toggle('on', !!c.liked); like.setAttribute('aria-pressed', !!c.liked); };
+        paintLike();
+        like.onclick = async () => {
+          const was = { liked: c.liked, likes: c.likes };
+          c.liked = !c.liked; c.likes = Math.max(0, (c.likes || 0) + (c.liked ? 1 : -1)); paintLike();
+          try {
+            const r = await fetch(API + '/like', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: c.id, client, on: c.liked }) });
+            const d = await r.json(); if (!r.ok) throw 0; c.likes = d.likes; c.liked = d.liked;
+          } catch (e) { Object.assign(c, was); }
+          paintLike();
+        };
+        d.append(m, el('p', '', c.body), like); list.append(d);
       }
     };
     let items = [];
-    fetch(API + '/comments?app=' + app).then(r => r.json()).then(d => { items = Array.isArray(d) ? d : []; show(items); })
+    fetch(API + '/comments?app=' + app + '&client=' + encodeURIComponent(client)).then(r => r.json()).then(d => { items = Array.isArray(d) ? d : []; show(items); })
       .catch(() => { list.textContent = ''; list.append(el('div', 'empty', "Couldn't load comments right now.")); });
 
     form.onsubmit = async e => {
@@ -228,12 +209,12 @@ function setup(box, data) {
     };
   }
 
-  box.append(rate, toggle, panel);
+  box.append(toggle, panel);
 }
 
 const boxes = [...document.querySelectorAll('.fb')];
 boxes.forEach(b => setup(b));
-fetch(API + '/summary?client=' + encodeURIComponent(client)).then(r => r.json()).then(d => boxes.forEach(b => setup(b, d[b.dataset.app]))).catch(() => {});
+fetch(API + '/summary').then(r => r.json()).then(d => boxes.forEach(b => setup(b, d[b.dataset.app]))).catch(() => {});
 </script>
 </body>
 </html>

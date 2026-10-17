@@ -1,9 +1,9 @@
 # slop-feedback
 
-Star ratings and comments for the site, running as a Cloudflare Worker at
+Comments and likes for the site, running as a Cloudflare Worker at
 `https://slop-feedback.wgseiple.workers.dev` with a D1 database.
 
-- Anyone can rate 1–5 (one rating per browser, changeable) and comment with just a name.
+- Anyone can comment with just a name and like comments (one like per browser).
 - Comments go through a Cloudflare Turnstile bot check and are rate limited per network.
 - IP addresses are never stored, only a salted hash used for rate limits.
 

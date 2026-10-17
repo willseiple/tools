@@ -1,5 +1,5 @@
 // Ratings and comments for the Vibecoded Slop site (willseiple.github.io/tools).
-// Anyone can rate 1-5 stars and comment with just a name. Comments pass a Turnstile check.
+// Anyone can comment with just a name and like comments. Comments pass a Turnstile check.
 
 const APPS = new Set(['guitarhud', 'drafter']);
 const ORIGINS = [/^https:\/\/willseiple\.github\.io$/, /^http:\/\/localhost(:\d+)?$/, /^http:\/\/127\.0\.0\.1(:\d+)?$/];
@@ -23,43 +23,42 @@ export default {
       const now = Date.now();
 
       if (req.method === 'GET' && url.pathname === '/summary') {
-        const client = clean(url.searchParams.get('client') || '', 64);
-        const voter = client ? await hash('v' + client) : '';
         const out = {};
-        for (const app of APPS) out[app] = { avg: 0, count: 0, comments: 0, mine: 0 };
-        const r = await env.DB.prepare('SELECT app, AVG(stars) avg, COUNT(*) n FROM ratings GROUP BY app').all();
-        for (const row of r.results) if (out[row.app]) Object.assign(out[row.app], { avg: Math.round(row.avg * 10) / 10, count: row.n });
+        for (const app of APPS) out[app] = { comments: 0 };
         const c = await env.DB.prepare('SELECT app, COUNT(*) n FROM comments WHERE hidden = 0 GROUP BY app').all();
         for (const row of c.results) if (out[row.app]) out[row.app].comments = row.n;
-        if (voter) {
-          const m = await env.DB.prepare('SELECT app, stars FROM ratings WHERE voter = ?').bind(voter).all();
-          for (const row of m.results) if (out[row.app]) out[row.app].mine = row.stars;
-        }
         return json(out);
       }
 
       if (req.method === 'GET' && url.pathname === '/comments') {
         const app = url.searchParams.get('app');
         if (!APPS.has(app)) return json({ error: 'Unknown app.' }, 400);
-        const r = await env.DB.prepare('SELECT id, name, body, ts FROM comments WHERE app = ? AND hidden = 0 ORDER BY ts DESC LIMIT 200').bind(app).all();
-        return json(r.results);
+        const client = clean(url.searchParams.get('client') || '', 64);
+        const voter = client ? await hash('v' + client) : '';
+        const r = await env.DB.prepare(`SELECT c.id, c.name, c.body, c.ts,
+            (SELECT COUNT(*) FROM likes l WHERE l.comment_id = c.id) likes,
+            EXISTS(SELECT 1 FROM likes l WHERE l.comment_id = c.id AND l.voter = ?) liked
+          FROM comments c WHERE c.app = ? AND c.hidden = 0 ORDER BY c.ts DESC LIMIT 200`).bind(voter, app).all();
+        return json(r.results.map(x => ({ ...x, liked: !!x.liked })));
       }
 
-      if (req.method === 'POST' && url.pathname === '/rate') {
-        const { app, stars, client } = await req.json();
-        const s = Math.round(Number(stars));
-        if (!APPS.has(app) || !(s >= 1 && s <= 5) || typeof client !== 'string' || client.length < 8) return json({ error: 'Bad rating.' }, 400);
+      if (req.method === 'POST' && url.pathname === '/like') {
+        const { id, client, on } = await req.json();
+        const cid = Number(id);
+        if (!Number.isInteger(cid) || typeof client !== 'string' || client.length < 8) return json({ error: 'Bad like.' }, 400);
         const voter = await hash('v' + clean(client, 64));
-        // One network can add at most 5 new voters per app per day; changing your own rating is always fine.
-        const existing = await env.DB.prepare('SELECT 1 FROM ratings WHERE app = ? AND voter = ?').bind(app, voter).first();
-        if (!existing) {
-          const recent = await env.DB.prepare('SELECT COUNT(*) n FROM ratings WHERE app = ? AND iph = ? AND ts > ?').bind(app, iph, now - 86400000).first();
-          if (recent.n >= 5) return json({ error: 'Too many ratings from your network today.' }, 429);
+        if (on) {
+          const exists = await env.DB.prepare('SELECT 1 FROM comments WHERE id = ? AND hidden = 0').bind(cid).first();
+          if (!exists) return json({ error: 'That comment is gone.' }, 404);
+          // One network can add at most 60 likes an hour.
+          const recent = await env.DB.prepare('SELECT COUNT(*) n FROM likes WHERE iph = ? AND ts > ?').bind(iph, now - 3600000).first();
+          if (recent.n >= 60) return json({ error: 'Too many likes from your network. Try later.' }, 429);
+          await env.DB.prepare('INSERT OR IGNORE INTO likes (comment_id, voter, iph, ts) VALUES (?, ?, ?, ?)').bind(cid, voter, iph, now).run();
+        } else {
+          await env.DB.prepare('DELETE FROM likes WHERE comment_id = ? AND voter = ?').bind(cid, voter).run();
         }
-        await env.DB.prepare('INSERT INTO ratings (app, voter, stars, iph, ts) VALUES (?, ?, ?, ?, ?) ON CONFLICT(app, voter) DO UPDATE SET stars = excluded.stars, ts = excluded.ts')
-          .bind(app, voter, s, iph, now).run();
-        const r = await env.DB.prepare('SELECT AVG(stars) avg, COUNT(*) n FROM ratings WHERE app = ?').bind(app).first();
-        return json({ avg: Math.round(r.avg * 10) / 10, count: r.n, mine: s });
+        const r = await env.DB.prepare('SELECT COUNT(*) n FROM likes WHERE comment_id = ?').bind(cid).first();
+        return json({ id: cid, likes: r.n, liked: !!on });
       }
 
       if (req.method === 'POST' && url.pathname === '/comment') {
@@ -71,7 +70,7 @@ export default {
         if (!ok) return json({ error: "The bot check didn't pass. Reload the page and try again." }, 403);
         const recent = await env.DB.prepare('SELECT COUNT(*) n FROM comments WHERE iph = ? AND ts > ?').bind(iph, now - 600000).first();
         if (recent.n >= 4) return json({ error: 'Slow down a little. Try again in a few minutes.' }, 429);
-        const r = await env.DB.prepare('INSERT INTO comments (app, name, body, iph, ts) VALUES (?, ?, ?, ?, ?) RETURNING id, name, body, ts')
+        const r = await env.DB.prepare('INSERT INTO comments (app, name, body, iph, ts) VALUES (?, ?, ?, ?, ?) RETURNING id, name, body, ts, 0 AS likes')
           .bind(app, n, b, iph, now).first();
         return json(r);
       }
