@@ -1,0 +1,9 @@
+pyproject.toml
+pubip/__init__.py
+pubip/main.py
+pubip.egg-info/PKG-INFO
+pubip.egg-info/SOURCES.txt
+pubip.egg-info/dependency_links.txt
+pubip.egg-info/entry_points.txt
+pubip.egg-info/requires.txt
+pubip.egg-info/top_level.txt

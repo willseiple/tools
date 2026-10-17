@@ -1,0 +1,569 @@
+<title>Drafter</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,500;1,7..72,400&display=swap">
+<style>
+/* Layout: a single proof-sheet column; the live draft is the paper, everything else is desk. Blue pencil = unreviewed, red = struck. */
+:root{
+  --bg:#E9EDF0; --paper:#FBFCFC; --ink:#1A2026; --ink-2:#5A6670; --ink-3:#8A959E; --line:#D3DAE0;
+  --fresh:#2550BE; --fresh-bg:rgba(37,80,190,.07); --cut:#BD3A22; --cut-bg:rgba(189,58,34,.08);
+  --chip:#DEE4E9; --shadow:0 1px 2px rgba(20,30,40,.06),0 8px 28px rgba(20,30,40,.08);
+  --f-draft:"Literata",Georgia,"Times New Roman",serif;
+  --f-ui:"Hanken Grotesk",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#101418; --paper:#181E24; --ink:#E2E7EB; --ink-2:#99A5AF; --ink-3:#6B7781; --line:#2A333B;
+  --fresh:#8EADFF; --fresh-bg:rgba(142,173,255,.09); --cut:#FF8166; --cut-bg:rgba(255,129,102,.1);
+  --chip:#222A31; --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 28px rgba(0,0,0,.35); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#101418; --paper:#181E24; --ink:#E2E7EB; --ink-2:#99A5AF; --ink-3:#6B7781; --line:#2A333B;
+  --fresh:#8EADFF; --fresh-bg:rgba(142,173,255,.09); --cut:#FF8166; --cut-bg:rgba(255,129,102,.1);
+  --chip:#222A31; --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 28px rgba(0,0,0,.35); color-scheme:dark}
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font:15px/1.5 var(--f-ui);padding-inline:16px}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,textarea:focus-visible,summary:focus-visible{outline:2px solid var(--fresh);outline-offset:2px}
+.wrap{max-width:780px;margin:0 auto;display:flex;flex-direction:column;min-height:100%}
+
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;padding-block:14px 12px;border-bottom:1px solid var(--line)}
+.brand{font:600 18px/1 var(--f-draft);letter-spacing:-.01em;margin-right:auto;display:flex;align-items:center;gap:8px}
+.brand svg{flex:none}
+.seg{display:inline-flex;background:var(--chip);border-radius:8px;padding:2px}
+.seg button{border:0;background:none;padding:4px 10px;border-radius:6px;font-size:13px;color:var(--ink-2)}
+.seg button[aria-pressed="true"]{background:var(--paper);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.lbl{font:500 10.5px/1 var(--f-mono);text-transform:uppercase;letter-spacing:.08em;color:var(--ink-3)}
+.grp{display:flex;align-items:center;gap:6px}
+.btn{border:1px solid var(--line);background:var(--paper);border-radius:8px;padding:5px 11px;font-size:13px}
+.btn:hover{border-color:var(--ink-3)}
+.btn.primary{background:var(--fresh);border-color:var(--fresh);color:var(--paper);font-weight:600}
+.btn.danger{color:var(--cut);border-color:var(--cut)}
+.btn:disabled{opacity:.45;cursor:default}
+.ghost{border:0;background:none;padding:5px 8px;border-radius:6px;font-size:13px;color:var(--ink-2)}
+.ghost:hover:not(:disabled){background:var(--chip);color:var(--ink)}
+.ghost:disabled{opacity:.4;cursor:default}
+
+main{flex:1;display:flex;flex-direction:column;gap:22px;padding-block:22px 28px}
+.how{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px 22px;font-size:13px;color:var(--ink-2)}
+.how div{display:flex;gap:9px;min-width:0}
+.how b{font:500 11px/1.9 var(--f-mono);color:var(--fresh)}
+.banner{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;font-size:13px;color:var(--ink-2);border:1px dashed var(--ink-3);border-radius:10px;padding:9px 12px}
+.banner span{flex:1;min-width:200px}
+.warn{border-color:var(--cut);color:var(--cut)}
+
+.turn{min-width:0}
+.who{font:500 10.5px/1 var(--f-mono);text-transform:uppercase;letter-spacing:.09em;color:var(--ink-3);margin-bottom:7px;display:flex;gap:10px;align-items:center}
+.user .utext{white-space:pre-wrap;font-size:15px;padding-left:12px;border-left:2px solid var(--line);color:var(--ink)}
+.asst .paper{background:var(--paper);border:1px solid var(--line);border-radius:4px;padding:22px 26px;min-width:0}
+.asst.active .paper{box-shadow:var(--shadow)}
+.asst:not(.active) .paper{padding:16px 20px;opacity:.85}
+.draft{font:400 17px/1.68 var(--f-draft);white-space:pre-wrap;overflow-wrap:anywhere;min-height:1.6em}
+.asst:not(.active) .draft{font-size:15.5px}
+.draft.live{cursor:text}
+.draft .ok{color:var(--ink)}
+.draft .fresh{color:var(--fresh);background:var(--fresh-bg);border-radius:2px}
+.draft .seam::before{content:"";display:inline-block;width:2px;height:1.05em;background:var(--fresh);vertical-align:-2px;margin:0 1px;border-radius:1px;opacity:.55}
+.draft .doomed{color:var(--cut);text-decoration:line-through;text-decoration-thickness:1.5px;background:var(--cut-bg)}
+.draft .caret{display:inline-block;width:.5em;height:1em;background:var(--fresh);vertical-align:-2px;margin-left:1px;animation:blink 1s steps(2) infinite}
+@keyframes blink{50%{opacity:0}}
+@media (prefers-reduced-motion:reduce){.draft .caret{animation:none}}
+.thinking{font:italic 400 16px/1.6 var(--f-draft);color:var(--ink-3)}
+.draft ::selection{background:var(--cut-bg);color:var(--cut)}
+
+.tools{display:flex;flex-wrap:wrap;align-items:center;gap:4px 2px;margin-top:10px}
+.tools .sp{flex:1}
+.stat{font:400 11.5px/1.4 var(--f-mono);color:var(--ink-3);font-variant-numeric:tabular-nums}
+.stat i{font-style:normal;color:var(--fresh)}
+.err{margin-top:10px;font-size:13px;color:var(--cut)}
+.editbox{width:100%;min-height:240px;font:400 16px/1.65 var(--f-draft);color:var(--ink);background:var(--paper);border:1px solid var(--line);border-radius:4px;padding:12px;resize:vertical}
+
+details.rej{margin-top:12px}
+details.rej summary{font-size:13px;color:var(--ink-2);cursor:pointer;width:max-content;max-width:100%}
+.rejlist{display:flex;flex-direction:column;gap:10px;margin-top:10px}
+.rej-item{border-left:2px solid var(--cut);padding:2px 0 2px 12px;min-width:0}
+.rej-at{font:400 11.5px/1.4 var(--f-mono);color:var(--ink-3)}
+.rej-text{font:400 14.5px/1.55 var(--f-draft);color:var(--ink-2);text-decoration:line-through;text-decoration-color:var(--cut);white-space:pre-wrap;overflow-wrap:anywhere;margin:4px 0}
+.rej-note{font-size:13px;color:var(--ink)}
+.rej-item .ghost{padding:2px 6px;margin-left:-6px}
+
+.composer{position:sticky;bottom:0;background:var(--bg);padding-block:10px calc(14px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--line)}
+.composer form{display:flex;gap:8px;align-items:flex-end}
+.composer textarea{flex:1;min-width:0;resize:none;max-height:200px;min-height:44px;font:15px/1.45 var(--f-ui);color:var(--ink);background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:11px 13px}
+.composer .btn{height:44px;padding-inline:16px}
+
+#pop{position:absolute;z-index:20;width:min(360px,calc(100vw - 32px));background:var(--paper);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);padding:12px;display:flex;flex-direction:column;gap:9px}
+#pop .ph{font-size:13px;color:var(--ink-2)}
+#pop .ph q{font-family:var(--f-draft);color:var(--cut);font-style:italic}
+#pop textarea{width:100%;min-height:62px;resize:vertical;font:14px/1.4 var(--f-ui);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:7px;padding:8px 10px}
+#pop .chips{display:flex;flex-wrap:wrap;gap:6px}
+#pop .chip{border:1px solid var(--line);background:none;border-radius:999px;padding:3px 10px;font-size:12.5px;color:var(--ink-2)}
+#pop .chip:hover{border-color:var(--ink-3)}
+#pop .chip[aria-pressed="true"]{border-color:var(--cut);color:var(--cut);background:var(--cut-bg)}
+#pop .row{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+#pop .row .sp{flex:1}
+#pop kbd{font:10.5px var(--f-mono);color:var(--ink-3)}
+@media (max-width:640px){
+  #pop{position:fixed;left:16px!important;right:16px;top:auto!important;bottom:calc(16px + env(safe-area-inset-bottom,0px));width:auto}
+  .asst .paper{padding:16px 16px}
+  .draft{font-size:16px}
+  header .lbl{display:none}
+}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M3 15V9c0-3 2-5 5-5h7" fill="none" stroke="var(--ink)" stroke-width="1.8" stroke-linecap="round"/><path d="M8 9.5l5 5" stroke="var(--cut)" stroke-width="1.8" stroke-linecap="round"/><circle cx="3" cy="9" r="2" fill="var(--fresh)"/></svg>
+      Drafter
+    </div>
+    <div class="grp"><span class="lbl">Model</span><div class="seg" id="tier"></div></div>
+    <div class="grp"><span class="lbl">Length</span><div class="seg" id="len"></div></div>
+    <div class="grp">
+      <button class="ghost" id="copyAll" type="button">Copy all</button>
+      <button class="ghost" id="newDraft" type="button">New</button>
+    </div>
+  </header>
+  <main id="thread"></main>
+  <div class="composer">
+    <form id="form">
+      <textarea id="input" rows="1" placeholder="Ask something to start drafting…"></textarea>
+      <button class="btn primary" id="sendBtn" type="submit">Send</button>
+    </form>
+  </div>
+</div>
+<div id="pop" hidden></div>
+
+<script>
+const LS = 'drafter-v1';
+const TIERS = [['quick','Quick'],['default','Balanced'],['complex','Deep']];
+const LENS = [['short','Short',150],['medium','Medium',400],['long','Long',900]];
+const REASONS = [
+  ['Wrong energy', 'The word or phrase has the wrong energy or connotation for the feeling here.'],
+  ['Wrong concept', "It brings in a concept that doesn't belong or isn't correct in this context."],
+  ['Too technical', 'Too jargony or technical for this. Use plainer, more natural language.'],
+  ['Wrong direction', 'The line of thought went somewhere I don’t want. Go another way.'],
+];
+const $ = s => document.querySelector(s);
+const esc = s => s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const words = s => (s.match(/\S+/g) || []).length;
+
+let sample = null, sampleState = 'pending';
+let busy = false, ctl = null, pop = null, editing = null;
+
+function newAsst(){ return {role:'assistant', text:'', locked:0, rejected:[], hist:[], fut:[]}; }
+function exampleState(){
+  const pre = "The Roman Republic didn't fall in a single moment. It wore down over about a century, as the institutions built for a city-state struggled to govern a Mediterranean empire.\n\nThe first strain was economic. Conquest flooded Italy with slaves and plunder, and wealthy families bought up land to run as large estates. Small farmers, who had been the backbone of the legions, lost their footing. ";
+  const fresh = "When the Gracchus brothers tried to redistribute public land in the 130s and 120s BC, both were killed by fellow senators. Political violence had become a tool, and it stayed one.\n\nThe second strain was military.";
+  return {
+    example:true, tier:'default', len:'medium',
+    turns:[
+      {role:'user', text:"Explain why the Roman Republic fell, in a few paragraphs for a general reader."},
+      {role:'assistant', text: pre + fresh, locked: pre.length, hist:[], fut:[], rejected:[
+        {at: pre.length, span:"moral decline", note:"Moral decline is a dated explanation. Stick to institutions and incentives.",
+         text:"Roman writers at the time blamed moral decline, arguing that luxury from the East had softened the old virtues of discipline and frugality that made Rome great."}
+      ]}
+    ]
+  };
+}
+function blankState(){ return {example:false, tier:S?.tier || 'default', len:S?.len || 'medium', turns:[]}; }
+function load(){ try{ const v = JSON.parse(localStorage.getItem(LS)); if(v && Array.isArray(v.turns)) return v; }catch(e){} return null; }
+function save(){ try{ localStorage.setItem(LS, JSON.stringify(S)); }catch(e){} }
+let S = load() || exampleState();
+
+/* ---------- history ---------- */
+function snap(t){ t.hist.push(JSON.stringify({text:t.text, locked:t.locked, rejected:t.rejected})); if(t.hist.length > 60) t.hist.shift(); t.fut = []; }
+function undo(t){ if(!t.hist.length) return; t.fut.push(JSON.stringify({text:t.text, locked:t.locked, rejected:t.rejected})); Object.assign(t, JSON.parse(t.hist.pop())); save(); render(); }
+function redo(t){ if(!t.fut.length) return; t.hist.push(JSON.stringify({text:t.text, locked:t.locked, rejected:t.rejected})); Object.assign(t, JSON.parse(t.fut.pop())); save(); render(); }
+
+/* ---------- rendering ---------- */
+function activeIndex(){ const i = S.turns.length - 1; return i >= 0 && S.turns[i].role === 'assistant' ? i : -1; }
+
+function draftHTML(t, live, cut){
+  const len = t.text.length, locked = Math.min(t.locked, len);
+  const pts = [...new Set([0, locked, len, ...(cut != null ? [cut] : [])])].sort((a,b) => a-b);
+  let h = '';
+  for(let k = 0; k < pts.length - 1; k++){
+    const a = pts[k], b = pts[k+1]; if(b <= a) continue;
+    let cls = a < locked ? 'ok' : 'fresh';
+    if(cut != null && a >= cut) cls += ' doomed';
+    if(live && a === locked && locked > 0 && locked < len && cut == null) cls += ' seam';
+    h += `<span class="${cls}">${esc(t.text.slice(a,b))}</span>`;
+  }
+  return h;
+}
+
+function render(){
+  const th = $('#thread'), ai = activeIndex();
+  let h = '';
+  if(sampleState === 'none') h += `<div class="banner warn"><span>This page needs Claude to write drafts. Open it on claude.ai while signed in.</span></div>`;
+  if(!S.turns.length || S.example){
+    h += `<div class="how">
+      <div><b>1</b><span>Ask something. Claude drafts a reply below.</span></div>
+      <div><b>2</b><span>Select the words where it starts sounding wrong. Everything from there gets struck.</span></div>
+      <div><b>3</b><span>Add a note if you want, then regenerate from that point. Repeat until the reply is yours.</span></div></div>`;
+  }
+  if(S.example) h += `<div class="banner"><span>This is an example draft. Try selecting a phrase in the blue text, or clear it and ask your own question.</span><button class="btn" type="button" data-act="clearEx">Clear example</button></div>`;
+  S.turns.forEach((t, i) => {
+    if(t.role === 'user'){ h += `<section class="turn user"><div class="who">You</div><div class="utext">${esc(t.text)}</div></section>`; return; }
+    const active = i === ai;
+    h += `<section class="turn asst${active ? ' active' : ''}"><div class="who">${active ? 'Draft' : 'Reply'}${active && t.gen ? ' · writing' : ''}</div><div class="paper">`;
+    if(active && editing === i){
+      h += `<textarea class="editbox" id="editbox">${esc(t.text)}</textarea>
+        <div class="tools"><button class="btn primary" type="button" data-act="editSave">Save edits</button><button class="ghost" type="button" data-act="editCancel">Cancel</button><span class="sp"></span><span class="stat">Saved edits count as approved</span></div>`;
+    } else {
+      if(t.gen && !t.text) h += `<div class="thinking">Thinking…</div>`;
+      h += `<div class="draft${active && !t.gen ? ' live' : ''}" data-i="${i}">${draftHTML(t, active, active && pop && pop.i === i && pop.mode === 'regen' ? pop.cut : null)}${t.gen ? '<span class="caret"></span>' : ''}</div>`;
+      if(active) h += toolsHTML(t, i);
+    }
+    h += `</div>`;
+    if(active && t.err) h += `<div class="err">${esc(t.err)}</div>`;
+    if(active && t.rejected.length && editing !== i) h += rejHTML(t, i);
+    h += `</section>`;
+  });
+  th.innerHTML = h;
+  $('#sendBtn').disabled = busy || !sample;
+  $('#input').placeholder = ai >= 0 ? 'Reply to continue the conversation…' : 'Ask something to start drafting…';
+  if(editing != null){ const eb = $('#editbox'); if(eb && document.activeElement !== eb) eb.focus(); }
+}
+
+function toolsHTML(t, i){
+  const ok = Math.min(t.locked, t.text.length);
+  const stat = `<span class="stat">${words(t.text.slice(0, ok))} approved · <i>${words(t.text.slice(ok))} unreviewed</i></span>`;
+  if(t.gen) return `<div class="tools"><button class="btn danger" type="button" data-act="stop">Stop</button><span class="sp"></span>${stat}</div>`;
+  const dis = !sample ? ' disabled' : '';
+  return `<div class="tools">
+    <button class="ghost" type="button" data-act="undo" ${t.hist.length ? '' : 'disabled'} title="Undo (⌘Z)">Undo</button>
+    <button class="ghost" type="button" data-act="redo" ${t.fut.length ? '' : 'disabled'} title="Redo (⇧⌘Z)">Redo</button>
+    <button class="ghost" type="button" data-act="approve" ${ok < t.text.length ? '' : 'disabled'}>Approve all</button>
+    <button class="ghost" type="button" data-act="continue"${dis}>Continue</button>
+    <button class="ghost" type="button" data-act="restart"${dis}>Start over</button>
+    <button class="ghost" type="button" data-act="edit">Edit</button>
+    <button class="ghost" type="button" data-act="copy">Copy</button>
+    <span class="sp"></span>${stat}</div>`;
+}
+
+function rejHTML(t, i){
+  const items = t.rejected.map((r, k) => {
+    const before = t.text.slice(0, r.at).trim().split(/\s+/).slice(-6).join(' ');
+    const body = r.text.length > 420 ? r.text.slice(0, 420) + '…' : r.text;
+    return `<div class="rej-item"><div class="rej-at">${before ? 'after “…' + esc(before) + '”' : 'at the start'}</div>
+      <div class="rej-text">${esc(body)}</div>
+      ${r.note ? `<div class="rej-note">${esc(r.note)}</div>` : ''}
+      <button class="ghost" type="button" data-act="restore" data-k="${k}">Bring this version back</button></div>`;
+  }).reverse().join('');
+  const n = t.rejected.length;
+  return `<details class="rej"${pop ? '' : ''}><summary>${n} rejected version${n === 1 ? '' : 's'} · Claude avoids these</summary><div class="rejlist">${items}</div></details>`;
+}
+
+function renderDraftOnly(i){
+  const el = document.querySelector(`.draft[data-i="${i}"]`);
+  if(!el){ render(); return; }
+  const t = S.turns[i];
+  el.innerHTML = draftHTML(t, true, null) + (t.gen ? '<span class="caret"></span>' : '');
+  const th = el.parentElement.querySelector('.thinking'); if(th && t.text) th.remove();
+  const st = el.parentElement.querySelector('.stat');
+  if(st){ const ok = Math.min(t.locked, t.text.length); st.innerHTML = `${words(t.text.slice(0, ok))} approved · <i>${words(t.text.slice(ok))} unreviewed</i>`; }
+}
+
+/* ---------- top controls ---------- */
+function renderSegs(){
+  $('#tier').innerHTML = TIERS.map(([k, l]) => `<button type="button" data-tier="${k}" aria-pressed="${S.tier === k}">${l}</button>`).join('');
+  $('#len').innerHTML = LENS.map(([k, l]) => `<button type="button" data-len="${k}" aria-pressed="${S.len === k}">${l}</button>`).join('');
+}
+$('#tier').onclick = e => { const b = e.target.closest('[data-tier]'); if(b){ S.tier = b.dataset.tier; save(); renderSegs(); } };
+$('#len').onclick = e => { const b = e.target.closest('[data-len]'); if(b){ S.len = b.dataset.len; save(); renderSegs(); } };
+
+let newArm = null;
+$('#newDraft').onclick = () => {
+  if(busy) return;
+  const b = $('#newDraft');
+  if(!S.turns.length) return;
+  if(!newArm){ b.textContent = 'Clear everything?'; b.style.color = 'var(--cut)'; newArm = setTimeout(() => { newArm = null; b.textContent = 'New'; b.style.color = ''; }, 3000); return; }
+  clearTimeout(newArm); newArm = null; b.textContent = 'New'; b.style.color = '';
+  S = blankState(); closePop(true); editing = null; save(); render(); $('#input').focus();
+};
+$('#copyAll').onclick = () => {
+  const md = S.turns.map(t => (t.role === 'user' ? '**You:** ' : '**Claude:** ') + t.text).join('\n\n');
+  copy(md, $('#copyAll'));
+};
+function copy(text, btn){
+  const done = () => { const o = btn.textContent; btn.textContent = 'Copied'; setTimeout(() => btn.textContent = o, 1200); };
+  try{
+    navigator.clipboard.writeText(text).then(done, () => fallbackCopy(text, done));
+  }catch(e){ fallbackCopy(text, done); }
+}
+function fallbackCopy(text, done){
+  const ta = document.createElement('textarea'); ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select(); try{ document.execCommand('copy'); done(); }catch(e){} ta.remove();
+}
+
+/* ---------- prompting ---------- */
+function lenTarget(){ return (LENS.find(l => l[0] === S.len) || LENS[1])[2]; }
+function trunc(s, n){ s = s.trim(); return s.length > n ? s.slice(0, n) + '…' : s; }
+
+function buildPrompt(i, prefix, ctx){
+  const t = S.turns[i];
+  let convo = S.turns.slice(0, i).map(x => (x.role === 'user' ? 'USER' : 'ASSISTANT') + ':\n' + x.text).join('\n\n');
+  if(convo.length > 120000) convo = '…' + convo.slice(-120000);
+  const target = lenTarget(), have = words(prefix);
+  let p = `You are writing the ASSISTANT's next reply in the conversation below. The reply is drafted collaboratively: the person reads your text as it is written, and whenever it starts going somewhere they disagree with (an idea they think is wrong, a claim that doesn't fit the context, a framing or tone they don't want), they cut it at that point and ask you to write again from there. Everything inside <approved> has been read and accepted by the person.
+
+<conversation>
+${convo}
+</conversation>
+
+<approved>
+${prefix || '(nothing yet — start the reply from the beginning)'}
+</approved>
+`;
+  const here = t.rejected.filter(r => r.at === ctx.cut);
+  const earlier = t.rejected.filter(r => r.at < ctx.cut);
+  if(ctx.mode === 'regen' && here.length){
+    p += `\nAt exactly this point, the person rejected ${here.length === 1 ? 'this continuation' : 'these continuations'}:\n<rejected>\n${here.map((r, k) => `${k+1}. ${trunc(r.text, 700)}`).join('\n')}\n</rejected>\n`;
+    const last = here[here.length - 1];
+    if(last.span) p += `They highlighted this as the exact spot where it started feeling wrong: "${trunc(last.span, 300)}"\nOften a single word or term is the trigger: its connotation, energy or register clashed with the feeling of the approved text, or it imported a concept (for example a mathematical or physics notion) that doesn't belong in what is being drafted. Treat the highlighted words as the problem. Don't use them or close synonyms of the same register.\n`;
+    const notes = here.filter(r => r.note).map(r => r.note);
+    p += notes.length ? `Their notes on what was wrong or where to go instead:\n${notes.map(n => '- ' + n).join('\n')}\n` : `They left no note, so work out what was off (a word's energy, a concept, an assumption, a framing or tone) and take a clearly different direction.\n`;
+    p += `Write a different continuation that does not reuse the rejected terms, ideas or framing, and that keeps the emotional tone and energy of the approved text.\n`;
+  }
+  const avoid = [...new Set(t.rejected.filter(r => r.at <= ctx.cut && r.span).map(r => r.span.trim()).filter(s => s && s.length <= 60))];
+  if(avoid.length) p += `\nWords and phrases the person has flagged in this reply. Steer clear of them and their near-synonyms: ${avoid.map(s => `"${s}"`).join(', ')}\n`;
+  if(ctx.mode === 'continue'){
+    p += `\nThe person approved the whole reply so far and wants it to go further.${ctx.note ? `\nDirection for what comes next: ${ctx.note}` : ''}\n`;
+  }
+  if(earlier.length){
+    p += `\nEarlier in this reply the person also rejected these directions. Avoid them:\n${earlier.slice(-6).map(r => `- "${trunc(r.text, 220)}"${r.note ? ` (their note: ${r.note})` : ''}`).join('\n')}\n`;
+  }
+  if(ctx.mode === 'continue') p += `\nLength: add roughly another ${Math.round(target / 2)} words, then stop at a natural point.\n`;
+  else if(have >= target * 0.9) p += `\nLength: the reply is already near its target of about ${target} words, so bring it to a natural close within a few sentences.\n`;
+  else p += `\nLength: the whole reply should be about ${target} words, so write roughly ${target - have} more words.\n`;
+  p += `
+Output rules:
+- Output ONLY the new text that comes directly after the approved text. Never repeat any approved text. No preamble, no commentary, no quotation marks around your output.
+- If the approved text stops mid-sentence, continue that sentence seamlessly.
+- Match the voice, tone and formatting of the approved text.
+- Write plain text in paragraphs separated by blank lines. No markdown headings or bold; use a simple list only if the request clearly calls for one.`;
+  return p;
+}
+
+function joiner(prefix, text){
+  if(!prefix || /\s$/.test(prefix) || /^\s/.test(text)) return '';
+  return /^[\p{L}\p{N}("'“‘\[—–-]/u.test(text) ? ' ' : '';
+}
+function cleanStart(prefix, text){
+  if(!prefix) return text.replace(/^\s+/, '');
+  if(/\n\n$/.test(prefix)) return text.replace(/^\s+/, '');
+  if(/\n$/.test(prefix)) return text.replace(/^[ \t]+/, '');
+  return text;
+}
+function errMsg(code){
+  return ({
+    not_granted: 'Claude access was declined for this page. Reload the page to be asked again.',
+    sampling_disabled: "Claude isn't available for this account.",
+    rate_limited: 'Too many requests right now. Wait a moment, then try again.',
+    session_expired: 'Your claude.ai session expired. Sign in again, then retry.',
+    refused: 'Claude declined to write this. Try a different cut point or note.',
+    empty_completion: 'Claude returned nothing. Try a different cut point or note.',
+    prompt_too_large: 'The conversation is too long to send. Start a new draft.',
+  })[code] || 'The connection dropped mid-draft. What was written is kept; try again.';
+}
+
+async function run(i, cut, ctx){
+  const t = S.turns[i];
+  if(!sample){ t.err = 'Claude is not connected on this page.'; render(); return; }
+  const prefix = t.text.slice(0, cut);
+  t.text = prefix; t.locked = prefix.length; t.err = ''; t.gen = true;
+  busy = true; ctl = new AbortController();
+  const prompt = buildPrompt(i, prefix, {...ctx, cut});
+  render(); scrollToActive();
+  let join = null;
+  const apply = txt => { if(join === null) join = joiner(prefix, cleanStart(prefix, txt)); t.text = prefix + join + cleanStart(prefix, txt); };
+  try{
+    const res = await sample(prompt, { cache:false, signal:ctl.signal, modelTier:S.tier, onText:({text}) => { apply(text); renderDraftOnly(i); } });
+    apply(res.text);
+    if(res.truncated) t.err = 'The draft hit the length limit and stops mid-thought. Use Continue to extend it.';
+  }catch(e){
+    if(e && e.text) apply(e.text);
+    if(e && e.code === 'refused') t.text = prefix;
+    if(!e || e.code !== 'cancelled') t.err = errMsg(e && e.code);
+  }finally{
+    t.gen = false; busy = false; ctl = null;
+    t.text = t.text.replace(/\s+$/, '');
+    if(t.locked > t.text.length) t.locked = t.text.length;
+    save(); render();
+  }
+}
+function scrollToActive(){ const el = document.querySelector('.asst.active'); if(el) el.scrollIntoView({block:'nearest', behavior:'smooth'}); }
+
+/* ---------- actions ---------- */
+function trimCut(t, cut){ while(cut > 0 && /[ \t]/.test(t.text[cut-1])) cut--; return cut; }
+
+function regenerate(i, cut, span, note){
+  const t = S.turns[i]; snap(t);
+  cut = trimCut(t, cut);
+  const tail = t.text.slice(cut).trim();
+  t.rejected = t.rejected.filter(r => r.at <= cut);
+  if(tail){ t.rejected.push({at:cut, text:tail, span:span || '', note:note || ''}); if(t.rejected.length > 24) t.rejected.shift(); }
+  run(i, cut, tail ? {mode:'regen', span, note} : {mode:'continue', note});
+}
+function cutOnly(i, cut, span, note){
+  const t = S.turns[i]; snap(t);
+  cut = trimCut(t, cut);
+  const tail = t.text.slice(cut).trim();
+  t.rejected = t.rejected.filter(r => r.at <= cut);
+  if(tail) t.rejected.push({at:cut, text:tail, span:span || '', note:note || ''});
+  t.text = t.text.slice(0, cut).replace(/\s+$/, ''); t.locked = t.text.length; t.err = '';
+  save(); render();
+}
+function continueReply(i, note){
+  const t = S.turns[i]; snap(t);
+  t.text = t.text.replace(/\s+$/, '');
+  run(i, t.text.length, {mode:'continue', note});
+}
+function restore(i, k){
+  const t = S.turns[i], r = t.rejected[k]; if(!r || r.at > t.text.length) return;
+  snap(t);
+  const pre = t.text.slice(0, r.at), cur = t.text.slice(r.at).trim();
+  t.rejected.splice(k, 1);
+  t.rejected = t.rejected.filter(x => x.at <= r.at);
+  if(cur) t.rejected.push({at:r.at, text:cur, span:'', note:''});
+  t.text = pre + joiner(pre, r.text) + r.text;
+  t.locked = Math.min(t.locked, r.at);
+  save(); render();
+}
+
+$('#thread').addEventListener('click', e => {
+  const b = e.target.closest('[data-act]'); if(!b) return;
+  const i = activeIndex(), t = S.turns[i];
+  switch(b.dataset.act){
+    case 'clearEx': S = blankState(); closePop(true); save(); render(); $('#input').focus(); break;
+    case 'stop': ctl?.abort(); break;
+    case 'undo': closePop(true); undo(t); break;
+    case 'redo': closePop(true); redo(t); break;
+    case 'approve': snap(t); t.locked = t.text.length; save(); render(); break;
+    case 'continue': openPop({i, cut:t.text.length, span:'', mode:'continue', rect:b.getBoundingClientRect()}); break;
+    case 'restart': openPop({i, cut:0, span:t.text.slice(0, 60), mode:'regen', rect:b.getBoundingClientRect()}); break;
+    case 'edit': closePop(true); editing = i; render(); break;
+    case 'editCancel': editing = null; render(); break;
+    case 'editSave': {
+      const v = $('#editbox').value.replace(/\s+$/, '');
+      snap(t);
+      let c = 0; while(c < v.length && c < t.text.length && v[c] === t.text[c]) c++;
+      t.rejected = t.rejected.filter(r => r.at <= c);
+      t.text = v; t.locked = v.length; editing = null; save(); render(); break;
+    }
+    case 'copy': copy(t.text, b); break;
+    case 'restore': closePop(true); restore(i, +b.dataset.k); break;
+  }
+});
+
+/* ---------- selecting a cut point ---------- */
+function offsetIn(root, node, off){ const r = document.createRange(); r.selectNodeContents(root); r.setEnd(node, off); return r.toString().length; }
+
+function handleSel(){
+  if(busy || editing != null || !sample) return;
+  const sel = getSelection(); if(!sel || !sel.rangeCount) return;
+  const r = sel.getRangeAt(0);
+  const sn = r.startContainer.nodeType === 1 ? r.startContainer : r.startContainer.parentElement;
+  const el = sn && sn.closest('.draft.live'); if(!el) return;
+  const i = +el.dataset.i, text = S.turns[i].text;
+  let s = offsetIn(el, r.startContainer, r.startOffset);
+  let e = el.contains(r.endContainer) ? offsetIn(el, r.endContainer, r.endOffset) : text.length;
+  s = Math.min(s, text.length); e = Math.min(Math.max(e, s), text.length);
+  if(e > s){ while(s < e && /\s/.test(text[s])) s++; }
+  while(s > 0 && /\S/.test(text[s-1])) s--;
+  if(e <= s){ e = s; while(e < text.length && /\S/.test(text[e])) e++; }
+  let rect = r.getBoundingClientRect();
+  if(!rect.width && !rect.height){ const rs = r.getClientRects(); rect = rs[0] || el.getBoundingClientRect(); }
+  sel.removeAllRanges();
+  if(s >= text.replace(/\s+$/, '').length) openPop({i, cut:text.length, span:'', mode:'continue', rect});
+  else openPop({i, cut:s, span:text.slice(s, e), mode:'regen', rect});
+}
+document.addEventListener('pointerup', e => { if(e.target.closest && e.target.closest('.draft.live')) setTimeout(handleSel, 0); });
+let selT = null;
+document.addEventListener('selectionchange', () => {
+  clearTimeout(selT);
+  selT = setTimeout(() => {
+    const sel = getSelection(); if(!sel || sel.isCollapsed || !sel.rangeCount) return;
+    const n = sel.anchorNode; const el = n && (n.nodeType === 1 ? n : n.parentElement);
+    if(el && el.closest('.draft.live') && matchMedia('(pointer:coarse)').matches) handleSel();
+  }, 600);
+});
+
+function openPop(p){
+  pop = p; render();
+  const el = $('#pop'), t = S.turns[p.i];
+  const words6 = s => { const w = s.trim().split(/\s+/); return w.slice(0, 6).join(' ') + (w.length > 6 ? '…' : ''); };
+  const head = p.mode === 'continue' ? 'Keep writing from the end of the draft.'
+    : p.cut === 0 ? 'Throw out the whole draft and write it again.'
+    : `Rewrite from <q>${esc(words6(t.text.slice(p.cut)))}</q> onward.`;
+  el.innerHTML = `<div class="ph">${head}</div>
+    ${p.mode === 'regen' ? `<div class="chips">${REASONS.map(r => `<button type="button" class="chip" data-r="${esc(r[1])}" aria-pressed="false">${r[0]}</button>`).join('')}</div>` : ''}
+    <textarea id="note" placeholder="${p.mode === 'continue' ? 'Optional: where should it go next?' : "Optional: what's off, or where it should go instead"}"></textarea>
+    <div class="row">
+      <button class="btn primary" type="button" id="popGo">${p.mode === 'continue' ? 'Continue' : 'Regenerate'}</button>
+      ${p.mode === 'regen' && p.cut > 0 ? '<button class="btn" type="button" id="popCut" title="Delete from here and stop">Cut here</button>' : ''}
+      <span class="sp"></span><kbd>↵ go · esc cancel</kbd>
+      <button class="ghost" type="button" id="popX">Cancel</button>
+    </div>`;
+  el.hidden = false;
+  const w = el.offsetWidth, h = el.offsetHeight;
+  let left = Math.min(Math.max(16, p.rect.left + window.scrollX), window.scrollX + document.documentElement.clientWidth - w - 16);
+  let top = p.rect.bottom + window.scrollY + 10;
+  if(p.rect.bottom + h + 20 > window.innerHeight && p.rect.top - h - 10 > 0) top = p.rect.top + window.scrollY - h - 10;
+  el.style.left = left + 'px'; el.style.top = top + 'px';
+  const note = $('#note');
+  if(!matchMedia('(pointer:coarse)').matches) note.focus({preventScroll:true});
+  note.addEventListener('keydown', e => {
+    if(e.key === 'Enter' && !e.shiftKey && !e.isComposing){ e.preventDefault(); go(); }
+  });
+  el.querySelectorAll('.chip').forEach(c => c.onclick = () => {
+    const on = c.getAttribute('aria-pressed') !== 'true'; c.setAttribute('aria-pressed', on);
+    note.focus({preventScroll:true});
+  });
+  const go = () => {
+    const picked = [...el.querySelectorAll('.chip[aria-pressed="true"]')].map(c => c.dataset.r);
+    const n = [...picked, note.value.trim()].filter(Boolean).join(' '); const q = pop; closePop(false); q.mode === 'continue' ? continueReply(q.i, n) : regenerate(q.i, q.cut, q.span, n); };
+  $('#popGo').onclick = go;
+  const c = $('#popCut'); if(c) c.onclick = () => { const q = pop, n = note.value.trim(); closePop(false); cutOnly(q.i, q.cut, q.span, n); };
+  $('#popX').onclick = () => closePop(true);
+}
+function closePop(rerender){ if(!pop) return; pop = null; $('#pop').hidden = true; if(rerender) render(); }
+document.addEventListener('pointerdown', e => {
+  if(!pop) return;
+  if(e.target.closest('#pop') || e.target.closest('.draft.live')) return;
+  closePop(true);
+});
+document.addEventListener('keydown', e => {
+  if(e.key === 'Escape'){ if(pop){ closePop(true); return; } if(busy){ ctl?.abort(); return; } }
+  const tag = (document.activeElement && document.activeElement.tagName) || '';
+  if((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z' && tag !== 'TEXTAREA' && tag !== 'INPUT' && !busy){
+    const i = activeIndex(); if(i < 0) return; e.preventDefault(); closePop(false);
+    e.shiftKey ? redo(S.turns[i]) : undo(S.turns[i]);
+  }
+});
+
+/* ---------- composer ---------- */
+const input = $('#input');
+const grow = () => { input.style.height = 'auto'; input.style.height = Math.min(input.scrollHeight, 200) + 'px'; };
+input.addEventListener('input', grow);
+input.addEventListener('keydown', e => { if(e.key === 'Enter' && !e.shiftKey && !e.isComposing){ e.preventDefault(); $('#form').requestSubmit(); } });
+$('#form').addEventListener('submit', e => {
+  e.preventDefault();
+  const v = input.value.trim(); if(!v || busy || !sample) return;
+  if(S.example) S = blankState();
+  closePop(false); editing = null;
+  S.turns.push({role:'user', text:v}); S.turns.push(newAsst());
+  input.value = ''; grow(); save();
+  run(S.turns.length - 1, 0, {mode:'fresh'});
+});
+
+/* ---------- boot ---------- */
+S.turns.forEach(t => { if(t.role === 'assistant'){ t.gen = false; t.err = ''; t.hist ||= []; t.fut ||= []; t.rejected ||= []; } });
+renderSegs(); render();
+(async () => {
+  try{ sample = window.claude ? await window.claude.use('sample') : null; }catch(e){ sample = null; }
+  sampleState = sample ? 'ready' : 'none'; render();
+})();
+</script>

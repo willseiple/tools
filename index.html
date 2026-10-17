@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tools by Will Seiple</title>
+<meta name="description" content="Small tools I built and use: GuitarHUD, a floating chord window for Spotify, and Drafter, a way to write with Claude by cutting where it goes wrong.">
+<link rel="icon" href="assets/guitarhud.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Literata:opsz,wght@7..72,500;7..72,600&display=swap">
+<style>
+:root{
+  --bg:#E9EDF0; --card:#FBFCFC; --ink:#1A2026; --ink-2:#56626C; --ink-3:#86919A; --line:#D3DAE0;
+  --blue:#2550BE; --red:#BD3A22; --amber:#F2A93B; --tile:#2A2D36;
+  --f-head:"Literata",Georgia,serif; --f-ui:"Hanken Grotesk",system-ui,-apple-system,sans-serif; --f-mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#101418; --card:#181E24; --ink:#E2E7EB; --ink-2:#99A5AF; --ink-3:#6B7781; --line:#2A333B;
+  --blue:#8EADFF; --red:#FF8166; --tile:#2A2D36; color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 var(--f-ui);padding-inline:16px}
+a{color:var(--blue)}
+.wrap{max-width:880px;margin:0 auto;padding-block:64px 48px}
+header h1{font:600 clamp(30px,5vw,42px)/1.1 var(--f-head);letter-spacing:-.015em;margin:0 0 10px;text-wrap:balance}
+header p{margin:0;color:var(--ink-2);max-width:56ch}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,380px),1fr));gap:20px;margin-top:40px}
+.tool{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:24px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.top{display:flex;gap:14px;align-items:center}
+.icon{width:56px;height:56px;flex:none;border-radius:13px}
+.tool h2{font:600 24px/1.1 var(--f-head);margin:0}
+.kind{font:500 11px/1.4 var(--f-mono);text-transform:uppercase;letter-spacing:.08em;color:var(--ink-3);margin-top:4px}
+.tool p{margin:0;color:var(--ink-2)}
+.tool ul{margin:0;padding-left:18px;color:var(--ink-2);font-size:15px;display:flex;flex-direction:column;gap:4px}
+.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:auto;padding-top:6px}
+.btn{display:inline-flex;align-items:center;gap:6px;text-decoration:none;font-weight:600;font-size:14.5px;padding:9px 16px;border-radius:9px;border:1px solid var(--line);color:var(--ink);background:var(--card)}
+.btn:hover{border-color:var(--ink-3)}
+.btn.primary{background:var(--ink);color:var(--card);border-color:var(--ink)}
+.btn:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+.note{font-size:13.5px;color:var(--ink-2);border-top:1px dashed var(--line);padding-top:12px}
+.note code{font:12.5px var(--f-mono);background:var(--bg);border:1px solid var(--line);border-radius:5px;padding:6px 8px;display:block;margin-top:6px;overflow-x:auto;white-space:nowrap;color:var(--ink)}
+.demo{font:500 16px/1.6 var(--f-head);background:var(--bg);border-radius:9px;padding:12px 14px;color:var(--ink)}
+.demo .f{color:var(--blue)} .demo s{color:var(--red);text-decoration-thickness:1.5px}
+footer{margin-top:48px;font-size:13.5px;color:var(--ink-3)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Tools by Will Seiple</h1>
+    <p>Small things I built because I wanted them. Free to use.</p>
+  </header>
+
+  <div class="grid">
+    <article class="tool" id="guitarhud">
+      <div class="top">
+        <img class="icon" src="assets/guitarhud.png" alt="">
+        <div><h2>GuitarHUD</h2><div class="kind">Mac app · macOS 13+</div></div>
+      </div>
+      <p>A floating chord window that follows whatever Spotify is playing. Play a song and the Ultimate Guitar chords are already up, sitting on top of your other windows.</p>
+      <ul>
+        <li>Best version preloaded, with a list of alternatives one click away</li>
+        <li>Hover a chord to see the fingering</li>
+        <li>Transpose, and auto-scroll in time with the song</li>
+      </ul>
+      <div class="actions">
+        <a class="btn primary" href="https://github.com/willseiple/guitar-hud/releases/latest/download/GuitarHUD.dmg">Download for Mac</a>
+        <a class="btn" href="https://github.com/willseiple/guitar-hud">Source</a>
+      </div>
+      <div class="note">Needs the Spotify desktop app. The app isn't notarized by Apple, so after dragging it into Applications, run this once in Terminal:
+        <code>xattr -dr com.apple.quarantine /Applications/GuitarHUD.app</code></div>
+    </article>
+
+    <article class="tool" id="drafter">
+      <div class="top">
+        <svg class="icon" viewBox="0 0 56 56" aria-hidden="true"><rect width="56" height="56" rx="13" fill="var(--tile)"/><path d="M15 41V27c0-6 4-10 10-10h17" fill="none" stroke="#E8ECEF" stroke-width="3.6" stroke-linecap="round"/><path d="M25 28l11 11" stroke="#FF8166" stroke-width="3.6" stroke-linecap="round"/><circle cx="15" cy="27" r="4.4" fill="#8EADFF"/></svg>
+        <div><h2>Drafter</h2><div class="kind">Web · runs on claude.ai</div></div>
+      </div>
+      <p>Write with Claude one stretch at a time. When a word or idea starts to feel wrong, highlight it. Everything from there gets rewritten, and you keep going until the whole reply is something you agree with.</p>
+      <div class="demo">The quiet is not empty, it is <s>a low-entropy state</s> <span class="f">full of things waiting</span></div>
+      <ul>
+        <li>Tap a reason like wrong energy or wrong concept, or write a note</li>
+        <li>Flagged words stay off-limits for the rest of the reply</li>
+        <li>Every rejected version is kept, so you can bring one back</li>
+      </ul>
+      <div class="actions">
+        <a class="btn primary" href="https://claude.ai/artifact/WTfHnWF36zSxn1aRUW3kRP">Open Drafter</a>
+        <a class="btn" href="https://github.com/willseiple/tools/tree/main/drafter">Source</a>
+      </div>
+      <div class="note">Sign in with a claude.ai account. Drafter writes with your own Claude plan, and asks before its first use.</div>
+    </article>
+  </div>
+
+  <footer>Made by <a href="https://github.com/willseiple">@willseiple</a>.</footer>
+</div>
+</body>
+</html>
