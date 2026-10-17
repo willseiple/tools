@@ -171,7 +171,7 @@ function setup(box, data) {
   rate.append(stars, avg);
 
   const toggle = el('button', 'ctoggle'); toggle.type = 'button'; toggle.setAttribute('aria-expanded', 'false');
-  const label = () => toggle.textContent = (toggle.getAttribute('aria-expanded') === 'true' ? 'Hide comments' : st.comments ? 'Comments (' + st.comments + ')' : 'Leave a comment');
+  const label = () => toggle.textContent = (toggle.getAttribute('aria-expanded') === 'true' ? 'Hide discussion' : st.comments ? 'Discuss (' + st.comments + ')' : 'Discuss');
   label();
   const panel = el('div'); panel.hidden = true;
   toggle.onclick = () => {
@@ -189,7 +189,7 @@ function setup(box, data) {
     const body = el('textarea'); body.id = 'body-' + app; body.placeholder = 'What did you think?'; body.maxLength = 2000; body.required = true;
     const ts = el('div');
     const row = el('div', 'row');
-    const post = el('button', 'btn primary', 'Post comment'); post.type = 'submit';
+    const post = el('button', 'btn primary', 'Post'); post.type = 'submit';
     const msg = el('span', 'msg');
     row.append(post, msg);
     form.append(name, body, ts, row);
@@ -201,7 +201,7 @@ function setup(box, data) {
 
     const show = items => {
       list.textContent = '';
-      if (!items.length) { list.append(el('div', 'empty', 'No comments yet. Be the first.')); return; }
+      if (!items.length) { list.append(el('div', 'empty', 'Nothing here yet. Start the discussion.')); return; }
       for (const c of items) {
         const d = el('div', 'c'); const m = el('div', 'meta'); m.append(el('b', '', c.name)); m.append(ago(c.ts));
         d.append(m, el('p', '', c.body)); list.append(d);
